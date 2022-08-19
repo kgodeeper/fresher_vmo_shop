@@ -5,8 +5,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   BaseEntity,
+  BeforeInsert,
 } from 'typeorm';
 import { userRole, userStatus } from 'src/commons/enum.common';
+import { encrypt } from 'src/utils/encrypt.util';
 
 @Entity()
 export class User extends BaseEntity {
@@ -22,7 +24,7 @@ export class User extends BaseEntity {
   @Column()
   email: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   dob: string;
 
   @Column({
@@ -50,4 +52,9 @@ export class User extends BaseEntity {
     nullable: true,
   })
   updateAt: string;
+
+  @BeforeInsert()
+  async encyptPassword() {
+    this.password = await encrypt(this.password);
+  }
 }
