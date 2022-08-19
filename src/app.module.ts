@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from './configs/database.config';
 import { UserModule } from './modules/users/user.module';
 import { AuthModule } from './modules/auths/auth.module';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtConfig } from './configs/jwt.config';
 
 @Module({
   imports: [
@@ -15,6 +17,9 @@ import { AuthModule } from './modules/auths/auth.module';
     }),
     TypeOrmModule.forRootAsync({
       useClass: databaseConfig,
+    }),
+    JwtModule.registerAsync({
+      useClass: JwtConfig,
     }),
     UserModule,
     AuthModule,

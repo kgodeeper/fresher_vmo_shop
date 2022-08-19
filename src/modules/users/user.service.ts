@@ -11,7 +11,7 @@ export class UserService extends ServiceUtil<User, Repository<User>> {
     super(dataSource.getRepository(User));
   }
 
-  async checkUserExist(account: string, password: string): Promise<boolean> {
+  async validatorUser(account: string, password: string): Promise<User> {
     password = await encrypt(password);
     const user = await this.repository
       .createQueryBuilder('user')
@@ -20,7 +20,6 @@ export class UserService extends ServiceUtil<User, Repository<User>> {
         { account, password },
       )
       .getOne();
-    if (user) return true;
-    return false;
+    return user;
   }
 }
