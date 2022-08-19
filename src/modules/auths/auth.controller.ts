@@ -13,6 +13,6 @@ export class AuthController {
       body.account,
       body.password,
     );
-    res.status(HttpStatus.OK).json({ accessToken: token });
+    res.status(HttpStatus.OK).json(token);
   }
 }
