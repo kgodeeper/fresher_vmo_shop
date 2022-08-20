@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { UserService } from '../users/user.service';
+import { AccountService } from '../accounts/account.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisCacheService } from '../caches/cache.service';
 import { JwtService } from '@nestjs/jwt';
@@ -7,16 +7,16 @@ import { JwtService } from '@nestjs/jwt';
 @Injectable()
 export class AuthService {
   constructor(
-    private userSerive: UserService,
+    private accountService: AccountService,
     private configService: ConfigService,
     private jwtService: JwtService,
     private cacheService: RedisCacheService,
   ) {}
   async validatorUser(account: string, password: string): Promise<object> {
-    const user = await this.userSerive.validatorUser(account, password);
+    const user = await this.accountService.validatorAccount(account, password);
     if (user) {
       try {
-        const pkUser = user.pkUser.toString();
+        const pkUser = user.pkAccount.toString();
         const accessToken = await this.jwtService.signAsync(
           { account },
           { expiresIn: this.configService.get<string>('ACCESSTOKENEXPIRES') },
