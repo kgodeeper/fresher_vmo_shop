@@ -1,7 +1,14 @@
-import { Body, Controller, HttpStatus, Res, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpStatus,
+  Res,
+  Post,
+  BadRequestException,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
-import { LoginValidator } from './auth.validator';
+import { LoginValidator, RegisterValidator } from './auth.validator';
 
 @Controller('auth')
 export class AuthController {
@@ -14,5 +21,10 @@ export class AuthController {
       body.password,
     );
     res.status(HttpStatus.OK).json(token);
+  }
+
+  @Post('register')
+  async userRegister(@Body() account: RegisterValidator) {
+    return await this.authService.registerUser(account);
   }
 }

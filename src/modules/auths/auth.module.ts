@@ -5,11 +5,13 @@ import { RedisCacheModule } from '../caches/cache.module';
 import { AccountModule } from '../accounts/account.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { MailModule } from '../mailer/mailer.module';
 
 @Module({
   imports: [
     AccountModule,
     RedisCacheModule,
+    MailModule,
     JwtModule.registerAsync({
       useClass: JwtConfig,
     }),

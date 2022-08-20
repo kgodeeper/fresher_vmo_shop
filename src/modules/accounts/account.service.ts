@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { encrypt } from 'src/utils/encrypt.util';
 import { ServiceUtil } from 'src/utils/service.util';
 import { DataSource, Repository } from 'typeorm';
+import { RegisterValidator } from '../auths/auth.validator';
 import { Account } from './account.entity';
 
 @Injectable()
@@ -21,5 +22,15 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       )
       .getOne();
     return user;
+  }
+
+  async findUserByAccount(username: string, email: string): Promise<Account> {
+    return this.findOneByCondition({ where: [{ username }, { email }] });
+  }
+
+  async createAccount(account: RegisterValidator): Promise<void> {
+    await this.addRecord(
+      new Account(account.username, account.password, account.email),
+    );
   }
 }

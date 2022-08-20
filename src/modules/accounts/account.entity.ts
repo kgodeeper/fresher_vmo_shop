@@ -12,6 +12,20 @@ import { encrypt } from 'src/utils/encrypt.util';
 
 @Entity()
 export class Account extends BaseEntity {
+  constructor(
+    username: string,
+    password: string,
+    email: string,
+    role?: accountRole,
+    status?: accountStatus,
+  ) {
+    super();
+    this.username = username;
+    this.password = password;
+    this.email = email;
+    this.status = status;
+    this.role = role;
+  }
   @PrimaryGeneratedColumn('uuid')
   pkAccount: string;
 
