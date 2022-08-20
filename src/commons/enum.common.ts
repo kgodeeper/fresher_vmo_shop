@@ -1,10 +1,10 @@
-export enum userRole {
+export enum accountRole {
   SUPERUSER = 'superuser',
   STAFF = 'staff',
   CUSTOMER = 'customer',
 }
 
-export enum userStatus {
+export enum accountStatus {
   BLOCKED = 'blocked',
   INACTIVE = 'inactive',
   ACTIVE = 'active',

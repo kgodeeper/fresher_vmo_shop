@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from './configs/database.config';
-import { UserModule } from './modules/users/user.module';
+import { AccountModule } from './modules/accounts/account.module';
 import { AuthModule } from './modules/auths/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtConfig } from './configs/jwt.config';
@@ -21,7 +21,7 @@ import { JwtConfig } from './configs/jwt.config';
     JwtModule.registerAsync({
       useClass: JwtConfig,
     }),
-    UserModule,
+    AccountModule,
     AuthModule,
   ],
   controllers: [AppController],
