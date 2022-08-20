@@ -13,12 +13,12 @@ export class RedisCacheService {
   }
 
   async set(key: string, value: string, timeToLive: number): Promise<any> {
-    try {
-      await this.cache.set(key, value, {
-        ttl: timeToLive,
-      });
-    } catch (error) {
-      console.log(error);
-    }
+    await this.cache.set(key, value, {
+      ttl: timeToLive,
+    });
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.cache.set(key, '', { ttl: 0 });
   }
 }

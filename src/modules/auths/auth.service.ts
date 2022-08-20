@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterValidator } from './auth.validator';
 import { MailService } from '../mailer/mailer.service';
 import { generateCode } from 'src/utils/code-generator.util';
+import { accountStatus } from 'src/commons/enum.common';
 
 @Injectable()
 export class AuthService {
@@ -23,32 +24,34 @@ export class AuthService {
   ) {}
   async validatorUser(account: string, password: string): Promise<object> {
     const user = await this.accountService.validatorAccount(account, password);
-    if (user) {
-      try {
-        const pkUser = user.pkAccount.toString();
-        const accessToken = await this.jwtService.signAsync(
+    if (!user)
+      throw new HttpException('Account is not exist', HttpStatus.BAD_REQUEST);
+    if (user.status !== accountStatus.ACTIVE)
+      throw new HttpException('Account is not active', HttpStatus.BAD_REQUEST);
+    try {
+      const pkUser = user.pkAccount.toString();
+      const accessToken = await this.jwtService.signAsync(
+        { account },
+        { expiresIn: this.configService.get<string>('ACCESSTOKENEXPIRES') },
+      );
+      let refreshToken = await this.cacheService.get(pkUser);
+      if (!refreshToken) {
+        refreshToken = await this.jwtService.signAsync(
           { account },
-          { expiresIn: this.configService.get<string>('ACCESSTOKENEXPIRES') },
+          {
+            expiresIn: this.configService.get<string>('REFRESHTOKENEXPIRES'),
+          },
         );
-        let refreshToken = await this.cacheService.get(pkUser);
-        if (!refreshToken) {
-          refreshToken = await this.jwtService.signAsync(
-            { account },
-            {
-              expiresIn: this.configService.get<string>('REFRESHTOKENEXPIRES'),
-            },
-          );
-          await this.cacheService.set(
-            pkUser,
-            refreshToken,
-            this.configService.get<number>('TTLCACHE'),
-          );
-        }
-        return { accessToken, refreshToken };
-      } catch (error) {
-        throw new InternalServerErrorException();
+        await this.cacheService.set(
+          pkUser,
+          refreshToken,
+          this.configService.get<number>('TTLCACHE'),
+        );
       }
-    } else return {};
+      return { accessToken, refreshToken };
+    } catch (error) {
+      throw new InternalServerErrorException();
+    }
   }
 
   async registerUser(account: RegisterValidator): Promise<any> {
@@ -57,7 +60,7 @@ export class AuthService {
       account.email,
     );
     if (!user) {
-      //await this.accountService.createAccount(account);
+      await this.accountService.createAccount(account);
       const code = generateCode();
       await this.cacheService.set(
         account.email,
@@ -66,7 +69,13 @@ export class AuthService {
       );
       this.mailService.sendVerifyEmail(account.email, code);
     } else {
-      throw new HttpException('Account already exist', HttpStatus.BAD_REQUEST);
+      if (user.username === account.username)
+        throw new HttpException('Email already exist', HttpStatus.BAD_REQUEST);
+      else
+        throw new HttpException(
+          'Username already exist',
+          HttpStatus.BAD_REQUEST,
+        );
     }
   }
 }

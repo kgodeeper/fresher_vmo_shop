@@ -1,16 +1,9 @@
-import {
-  Body,
-  Controller,
-  HttpStatus,
-  Res,
-  Post,
-  BadRequestException,
-} from '@nestjs/common';
+import { Body, Controller, HttpStatus, Res, Post } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginValidator, RegisterValidator } from './auth.validator';
 
-@Controller('auth')
+@Controller('auths')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
