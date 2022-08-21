@@ -20,12 +20,12 @@ export class LoginValidator {
 export class RegisterValidator {
   @IsNotEmpty()
   @IsString()
-  @Matches(new RegExp('[a-zA-Z0-9]{6,}'))
+  @Matches(new RegExp('[a-zA-Z0-9]{6,}$'))
   username: string;
 
   @IsNotEmpty()
   @IsString()
-  @Matches(new RegExp('^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]{8,}'))
+  @Matches(new RegExp('^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$'))
   password: string;
 
   @IsNotEmpty()

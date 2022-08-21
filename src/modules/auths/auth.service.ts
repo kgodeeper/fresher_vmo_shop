@@ -1,6 +1,8 @@
 import {
+  forwardRef,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -27,7 +29,10 @@ export class AuthService {
     if (!user)
       throw new HttpException('Account is not exist', HttpStatus.BAD_REQUEST);
     if (user.status !== accountStatus.ACTIVE)
-      throw new HttpException('Account is not active', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        `Account is ${user.status}`,
+        HttpStatus.BAD_REQUEST,
+      );
     try {
       const pkUser = user.pkAccount.toString();
       const accessToken = await this.jwtService.signAsync(
@@ -61,21 +66,15 @@ export class AuthService {
     );
     if (!user) {
       await this.accountService.createAccount(account);
-      const code = generateCode();
-      await this.cacheService.set(
-        account.email,
-        code,
-        this.configService.get<number>('TTLVERIFY'),
-      );
-      this.mailService.sendVerifyEmail(account.email, code);
+      this.accountService.sendVerifyEmail(account.email);
     } else {
       if (user.username === account.username)
-        throw new HttpException('Email already exist', HttpStatus.BAD_REQUEST);
-      else
         throw new HttpException(
           'Username already exist',
           HttpStatus.BAD_REQUEST,
         );
+      else
+        throw new HttpException('Email already exist', HttpStatus.BAD_REQUEST);
     }
   }
 }
