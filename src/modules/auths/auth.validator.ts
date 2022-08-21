@@ -1,34 +1,25 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsString,
-  Matches,
-  MinLength,
-} from 'class-validator';
+import * as Joi from 'joi';
+import { JoiSchema } from 'nestjs-joi';
 
 export class LoginValidator {
-  @IsNotEmpty()
-  @IsString()
+  @JoiSchema(Joi.string().min(6).required())
   account: string;
 
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(8)
+  @JoiSchema(Joi.string().min(8).required())
   password: string;
 }
 
 export class RegisterValidator {
-  @IsNotEmpty()
-  @IsString()
-  @Matches(new RegExp('[a-zA-Z0-9]{6,}$'))
+  @JoiSchema(Joi.string().pattern(new RegExp('[a-zA-Z0-9]{6,}$')).required())
   username: string;
 
-  @IsNotEmpty()
-  @IsString()
-  @Matches(new RegExp('^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$'))
+  @JoiSchema(
+    Joi.string()
+      .pattern(new RegExp('^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$'))
+      .required(),
+  )
   password: string;
 
-  @IsNotEmpty()
-  @IsEmail()
+  @JoiSchema(Joi.string().email())
   email: string;
 }
