@@ -1,4 +1,4 @@
-import { Body, Controller, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { AccountService } from './account.service';
 import { VerifyValidator } from './account.validtor';
 
@@ -9,5 +9,10 @@ export class UserController {
   @Put('active')
   async activeAccount(@Body() body: VerifyValidator) {
     await this.accountService.activeAccount(body);
+  }
+
+  @Get('resend-verify-code/:email')
+  async resendVerifyCode(@Param() param) {
+    await this.accountService.resendVerifyEmail(param.email);
   }
 }

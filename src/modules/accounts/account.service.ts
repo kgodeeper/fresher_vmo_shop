@@ -1,10 +1,13 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { accountStatus } from 'src/commons/enum.common';
+import { generateCode } from 'src/utils/code-generator.util';
 import { encrypt } from 'src/utils/encrypt.util';
 import { ServiceUtil } from 'src/utils/service.util';
 import { DataSource, Repository } from 'typeorm';
 import { RegisterValidator } from '../auths/auth.validator';
 import { RedisCacheService } from '../caches/cache.service';
+import { MailService } from '../mailer/mailer.service';
 import { Account } from './account.entity';
 import { VerifyValidator } from './account.validtor';
 
@@ -13,6 +16,8 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   repository: Repository<Account>;
   constructor(
     private dataSource: DataSource,
+    private mailService: MailService,
+    private configService: ConfigService,
     private cacheService: RedisCacheService,
   ) {
     super(dataSource.getRepository(Account));
@@ -69,5 +74,27 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
         HttpStatus.BAD_REQUEST,
       );
     }
+  }
+
+  async resendVerifyEmail(email: string): Promise<void> {
+    const user = await this.findOneByCondition({ where: { email } });
+    if (!user)
+      throw new HttpException('Email is not exist', HttpStatus.BAD_REQUEST);
+    if (user.status !== accountStatus.INACTIVE)
+      throw new HttpException(
+        `Account already ${user.status}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    this.sendVerifyEmail(email);
+  }
+
+  async sendVerifyEmail(email: string): Promise<void> {
+    const code = generateCode();
+    await this.cacheService.set(
+      email,
+      code,
+      this.configService.get<number>('TTLVERIFY'),
+    );
+    this.mailService.sendVerifyEmail(email, code);
   }
 }
