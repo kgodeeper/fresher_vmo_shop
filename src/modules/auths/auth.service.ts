@@ -1,8 +1,6 @@
 import {
-  forwardRef,
   HttpException,
   HttpStatus,
-  Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -11,8 +9,6 @@ import { ConfigService } from '@nestjs/config';
 import { RedisCacheService } from '../caches/cache.service';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterValidator } from './auth.validator';
-import { MailService } from '../mailer/mailer.service';
-import { generateCode } from 'src/utils/code-generator.util';
 import { accountStatus } from 'src/commons/enum.common';
 
 @Injectable()
@@ -22,7 +18,6 @@ export class AuthService {
     private configService: ConfigService,
     private jwtService: JwtService,
     private cacheService: RedisCacheService,
-    private mailService: MailService,
   ) {}
   async validatorUser(account: string, password: string): Promise<object> {
     const user = await this.accountService.validatorAccount(account, password);
