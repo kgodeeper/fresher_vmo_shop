@@ -10,7 +10,7 @@ import { RedisCacheService } from '../caches/cache.service';
 import { JWTService } from '../jwts/jwt.service';
 import { MailService } from '../mailer/mailer.service';
 import { Account } from './account.entity';
-import { VerifyValidator } from './account.validtor';
+import { VerifyValidator } from './account.validator';
 
 @Injectable()
 export class AccountService extends ServiceUtil<Account, Repository<Account>> {
@@ -108,5 +108,55 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       throw new HttpException('Email is not exist', HttpStatus.BAD_REQUEST);
     const verifyCode = generateCode();
     this.mailService.sendForgotPasswordCode(email, verifyCode);
+    this.cacheService.set(
+      email,
+      verifyCode,
+      this.configService.get<number>('CONFIRMTTL'),
+    );
+  }
+
+  async confirmForgotPassword(email: string, code: string) {
+    const verifyCode = await this.cacheService.get(email);
+    if (!verifyCode)
+      throw new HttpException(
+        'Verify code for this email is not exist',
+        HttpStatus.BAD_REQUEST,
+      );
+    if (verifyCode !== code)
+      throw new HttpException(
+        'Verify code is not correct',
+        HttpStatus.BAD_REQUEST,
+      );
+    await this.cacheService.delete(email);
+    const confirmToken = this.jwtService.generateToken(
+      { email },
+      { expiresIn: this.configService.get<number>('CONFIRMTOKENEXPIRES') },
+    );
+    const signature = (await confirmToken).split('.');
+    await this.cacheService.set(
+      signature.at(-1),
+      email,
+      this.configService.get<number>('TOKENTTL'),
+    );
+    return confirmToken;
+  }
+
+  async changePasswordByToken({ password, presentToken }) {
+    const signature = (await presentToken).split('.');
+    const email = await this.cacheService.get(signature.at(-1));
+    if (!email)
+      throw new HttpException(
+        'Dont have change password require',
+        HttpStatus.BAD_REQUEST,
+      );
+    const user = await this.findOneByCondition({
+      where: { email, status: accountStatus.ACTIVE },
+    });
+
+    if (!user)
+      throw new HttpException('User is not exist', HttpStatus.BAD_REQUEST);
+    user.password = await encrypt(password);
+    user.save();
+    this.cacheService.delete(signature.at(-1));
   }
 }

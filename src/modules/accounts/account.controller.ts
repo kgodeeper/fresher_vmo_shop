@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Put,
+} from '@nestjs/common';
+import * as Joi from 'joi';
+import { JoiPipe } from 'nestjs-joi';
 import { AccountService } from './account.service';
-import { VerifyValidator } from './account.validtor';
+import { changePasswordByToken, VerifyValidator } from './account.validator';
 
 @Controller('accounts')
 export class UserController {
@@ -12,17 +21,32 @@ export class UserController {
   }
 
   @Get('resend-verify-code/:email')
-  async resendVerifyCode(@Param() param) {
-    await this.accountService.resendVerifyEmail(param.email);
+  async resendVerifyCode(
+    @Param('email', new JoiPipe(Joi.string().email())) email,
+  ) {
+    await this.accountService.resendVerifyEmail(email);
   }
 
   @Get('forgot-password/:email')
-  async forgotPassword(@Param() param) {
-    await this.accountService.forgotPassword(param.email);
+  async forgotPassword(
+    @Param('email', new JoiPipe(Joi.string().email())) email,
+  ) {
+    await this.accountService.forgotPassword(email);
   }
 
-  @Get('confirm-forgot-password/:email/:code')
-  async confirmForgotPassword(@Param() param) {
-    //await this.accountService.confirmForgotPassword(param.email, param.code);
+  @Get('confirm-forgot-password/:email/:verifyCode')
+  async confirmForgotPassword(
+    @Param() param: VerifyValidator,
+  ): Promise<object> {
+    const presentToken = await this.accountService.confirmForgotPassword(
+      param.email,
+      param.verifyCode,
+    );
+    return { presentToken };
+  }
+
+  @Put('change-password-by-token')
+  async changePasswordByToken(@Body() body: changePasswordByToken) {
+    await this.accountService.changePasswordByToken(body);
   }
 }

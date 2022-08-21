@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   BaseEntity,
   BeforeInsert,
+  BeforeUpdate,
 } from 'typeorm';
 import { accountRole, accountStatus } from 'src/commons/enum.common';
 import { encrypt } from 'src/utils/encrypt.util';
