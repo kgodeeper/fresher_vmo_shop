@@ -18,9 +18,6 @@ import { JwtConfig } from './configs/jwt.config';
     TypeOrmModule.forRootAsync({
       useClass: databaseConfig,
     }),
-    JwtModule.registerAsync({
-      useClass: JwtConfig,
-    }),
     AccountModule,
     AuthModule,
   ],

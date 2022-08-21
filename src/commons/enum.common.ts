@@ -9,3 +9,8 @@ export enum accountStatus {
   INACTIVE = 'inactive',
   ACTIVE = 'active',
 }
+
+export enum mailType {
+  ACTIVE = 'active',
+  CONFIRM = 'confirm',
+}

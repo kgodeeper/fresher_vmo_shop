@@ -7,16 +7,16 @@ import {
 import { AccountService } from '../accounts/account.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisCacheService } from '../caches/cache.service';
-import { JwtService } from '@nestjs/jwt';
 import { RegisterValidator } from './auth.validator';
 import { accountStatus } from 'src/commons/enum.common';
+import { JWTService } from '../jwts/jwt.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private accountService: AccountService,
     private configService: ConfigService,
-    private jwtService: JwtService,
+    private jwtService: JWTService,
     private cacheService: RedisCacheService,
   ) {}
   async validatorUser(account: string, password: string): Promise<object> {
@@ -30,13 +30,13 @@ export class AuthService {
       );
     try {
       const pkUser = user.pkAccount.toString();
-      const accessToken = await this.jwtService.signAsync(
+      const accessToken = await this.jwtService.generateToken(
         { account },
         { expiresIn: this.configService.get<string>('ACCESSTOKENEXPIRES') },
       );
       let refreshToken = await this.cacheService.get(pkUser);
       if (!refreshToken) {
-        refreshToken = await this.jwtService.signAsync(
+        refreshToken = await this.jwtService.generateToken(
           { account },
           {
             expiresIn: this.configService.get<string>('REFRESHTOKENEXPIRES'),

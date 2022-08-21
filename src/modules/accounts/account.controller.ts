@@ -15,4 +15,14 @@ export class UserController {
   async resendVerifyCode(@Param() param) {
     await this.accountService.resendVerifyEmail(param.email);
   }
+
+  @Get('forgot-password/:email')
+  async forgotPassword(@Param() param) {
+    await this.accountService.forgotPassword(param.email);
+  }
+
+  @Get('confirm-forgot-password/:email/:code')
+  async confirmForgotPassword(@Param() param) {
+    //await this.accountService.confirmForgotPassword(param.email, param.code);
+  }
 }

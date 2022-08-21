@@ -11,7 +11,25 @@ export class MailService {
         subject: 'VERIFY YOUR EMAIL',
         template: './mail.template.hbs',
         context: {
-          verifyCode: verifyCode,
+          verifyCode,
+        },
+      });
+    } catch {
+      throw new HttpException(
+        'Send mail error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  sendForgotPasswordCode(destination: string, verifyCode: string): void {
+    try {
+      this.mailerService.sendMail({
+        to: destination,
+        subject: 'FORGOT PASSWORD REQUIRE',
+        template: './pass.template.hbs',
+        context: {
+          verifyCode,
         },
       });
     } catch {

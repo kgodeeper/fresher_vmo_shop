@@ -7,6 +7,7 @@ import { ServiceUtil } from 'src/utils/service.util';
 import { DataSource, Repository } from 'typeorm';
 import { RegisterValidator } from '../auths/auth.validator';
 import { RedisCacheService } from '../caches/cache.service';
+import { JWTService } from '../jwts/jwt.service';
 import { MailService } from '../mailer/mailer.service';
 import { Account } from './account.entity';
 import { VerifyValidator } from './account.validtor';
@@ -16,6 +17,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   repository: Repository<Account>;
   constructor(
     private dataSource: DataSource,
+    private jwtService: JWTService,
     private mailService: MailService,
     private configService: ConfigService,
     private cacheService: RedisCacheService,
@@ -96,5 +98,15 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       this.configService.get<number>('TTLVERIFY'),
     );
     this.mailService.sendVerifyEmail(email, code);
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.findOneByCondition({
+      where: { email, status: accountStatus.ACTIVE },
+    });
+    if (!user)
+      throw new HttpException('Email is not exist', HttpStatus.BAD_REQUEST);
+    const verifyCode = generateCode();
+    this.mailService.sendForgotPasswordCode(email, verifyCode);
   }
 }

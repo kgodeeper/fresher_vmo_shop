@@ -6,16 +6,10 @@ import { AccountModule } from '../accounts/account.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { MailModule } from '../mailer/mailer.module';
+import { JWTModule } from '../jwts/jwt.module';
 
 @Module({
-  imports: [
-    AccountModule,
-    RedisCacheModule,
-    MailModule,
-    JwtModule.registerAsync({
-      useClass: JwtConfig,
-    }),
-  ],
+  imports: [AccountModule, RedisCacheModule, MailModule, JWTModule],
   exports: [],
   providers: [AuthService],
   controllers: [AuthController],
