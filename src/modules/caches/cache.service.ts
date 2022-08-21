@@ -1,7 +1,5 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-import { json } from 'stream/consumers';
-
 @Injectable()
 export class RedisCacheService {
   constructor(
@@ -9,7 +7,7 @@ export class RedisCacheService {
     private cache: Cache,
   ) {}
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<string> {
     return await this.cache.get(key);
   }
 
@@ -17,7 +15,7 @@ export class RedisCacheService {
     key: string,
     value: string | object,
     timeToLive: number,
-  ): Promise<any> {
+  ): Promise<void> {
     if (typeof value === 'object') {
       await this.cache.set(key, JSON.stringify(value), { ttl: timeToLive });
     } else
@@ -26,10 +24,14 @@ export class RedisCacheService {
       });
   }
 
-  async getJson(key: string): Promise<object> {
-    const jsonstr = await this.cache.get(key);
-    return JSON.parse(jsonstr);
-  }
+  // async getJsonProperty(key: string, property: string): Promise<string> {
+  //   const jsonstr = await this.cache.get(key);
+  //   const jsonobj = JSON.parse(jsonstr);
+  //   if (property in jsonobj) {
+  //     return jsonobj[property];
+  //   }
+  //   return '';
+  // }
 
   async delete(key: string): Promise<void> {
     await this.cache.set(key, '', { ttl: 0 });
