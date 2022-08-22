@@ -14,3 +14,9 @@ export enum mailType {
   ACTIVE = 'active',
   CONFIRM = 'confirm',
 }
+
+export enum customerGender {
+  MALE = 'male',
+  FEMALE = 'female',
+  OTHER = 'other',
+}
