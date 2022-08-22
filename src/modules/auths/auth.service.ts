@@ -10,6 +10,7 @@ import { RedisCacheService } from '../caches/cache.service';
 import { RegisterValidator } from './auth.validator';
 import { accountStatus } from 'src/commons/enum.common';
 import { JWTService } from '../jwts/jwt.service';
+import { splitString } from 'src/utils/string.util';
 
 @Injectable()
 export class AuthService {
@@ -19,7 +20,11 @@ export class AuthService {
     private jwtService: JWTService,
     private cacheService: RedisCacheService,
   ) {}
-  async validatorUser(account: string, password: string): Promise<object> {
+  async validatorUser(
+    account: string,
+    password: string,
+    sessionId: string,
+  ): Promise<object> {
     const user = await this.accountService.validatorAccount(account, password);
     if (!user)
       throw new HttpException('Account is not exist', HttpStatus.BAD_REQUEST);
@@ -29,12 +34,14 @@ export class AuthService {
         HttpStatus.BAD_REQUEST,
       );
     try {
-      const pkUser = user.pkAccount.toString();
+      const email = user.email;
       const accessToken = await this.jwtService.generateToken(
         { account },
         { expiresIn: this.configService.get<string>('ACCESSTOKENEXPIRES') },
       );
-      let refreshToken = await this.cacheService.get(pkUser);
+      let refreshToken = await this.cacheService.get(
+        `users:${email}:refreshToken`,
+      );
       if (!refreshToken) {
         refreshToken = await this.jwtService.generateToken(
           { account },
@@ -42,8 +49,19 @@ export class AuthService {
             expiresIn: this.configService.get<string>('REFRESHTOKENEXPIRES'),
           },
         );
+        /**
+         * cache access token
+         */
         await this.cacheService.set(
-          pkUser,
+          `users:${email}:${sessionId}:accessToken`,
+          splitString(accessToken, '.', -1),
+          this.configService.get<number>('ACCESSTOKENTTL'),
+        );
+        /**
+         * cache refresh token
+         */
+        await this.cacheService.set(
+          `users:${email}:refreshToken`,
           refreshToken,
           this.configService.get<number>('TTLCACHE'),
         );
