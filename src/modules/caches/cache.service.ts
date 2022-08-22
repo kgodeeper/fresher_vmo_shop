@@ -24,16 +24,7 @@ export class RedisCacheService {
       });
   }
 
-  // async getJsonProperty(key: string, property: string): Promise<string> {
-  //   const jsonstr = await this.cache.get(key);
-  //   const jsonobj = JSON.parse(jsonstr);
-  //   if (property in jsonobj) {
-  //     return jsonobj[property];
-  //   }
-  //   return '';
-  // }
-
   async delete(key: string): Promise<void> {
-    await this.cache.set(key, '', { ttl: 0 });
+    await this.cache.del(key);
   }
 }
