@@ -8,7 +8,7 @@ import {
   BeforeInsert,
 } from 'typeorm';
 import { accountRole, accountStatus } from 'src/commons/enum.common';
-import { encrypt } from 'src/utils/encrypt.util';
+import { encrypt } from 'src/utils/string.util';
 
 @Entity()
 export class Account extends BaseEntity {

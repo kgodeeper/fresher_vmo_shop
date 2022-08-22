@@ -1,8 +1,8 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { accountStatus } from 'src/commons/enum.common';
-import { generateCode } from 'src/utils/code-generator.util';
-import { encrypt } from 'src/utils/encrypt.util';
+import { generateCode } from 'src/utils/string.util';
+import { encrypt } from 'src/utils/string.util';
 import { ServiceUtil } from 'src/utils/service.util';
 import { DataSource, Repository } from 'typeorm';
 import { RegisterValidator } from '../auths/auth.validator';

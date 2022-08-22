@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Session } from '@nestjs/common';
 import * as Joi from 'joi';
 import { JoiPipe } from 'nestjs-joi';
 import { AccountService } from './account.service';
@@ -13,6 +13,7 @@ export class UserController {
     await this.accountService.activeAccount(body);
   }
 
+  // post
   @Get('resend-verify-code/:email')
   async resendVerifyCode(
     @Param('email', new JoiPipe(Joi.string().email())) email,
