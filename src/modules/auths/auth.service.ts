@@ -1,6 +1,7 @@
 import {
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ export class AuthService {
     private accountService: AccountService,
     private configService: ConfigService,
     private jwtService: JWTService,
+    @Inject(RedisCacheService)
     private cacheService: RedisCacheService,
   ) {}
   async validatorUser(
@@ -34,38 +36,38 @@ export class AuthService {
         HttpStatus.BAD_REQUEST,
       );
     try {
-      const email = user.email;
+      const username = user.username;
       const accessToken = await this.jwtService.generateToken(
-        { account },
+        { username: user.username },
         { expiresIn: this.configService.get<string>('ACCESSTOKENEXPIRES') },
       );
       let refreshToken = await this.cacheService.get(
-        `users:${email}:refreshToken`,
+        `users:${username}:refreshToken`,
       );
       if (!refreshToken) {
         refreshToken = await this.jwtService.generateToken(
-          { account },
+          { username },
           {
             expiresIn: this.configService.get<string>('REFRESHTOKENEXPIRES'),
           },
         );
         /**
-         * cache access token
-         */
-        await this.cacheService.set(
-          `users:${email}:${sessionId}:accessToken`,
-          splitString(accessToken, '.', -1),
-          this.configService.get<number>('ACCESSTOKENTTL'),
-        );
-        /**
          * cache refresh token
          */
         await this.cacheService.set(
-          `users:${email}:refreshToken`,
+          `users:${username}:refreshToken`,
           refreshToken,
           this.configService.get<number>('TTLCACHE'),
         );
       }
+      /**
+       * cache role
+       */
+      await this.cacheService.set(
+        `users:${username}:${sessionId}:${splitString(accessToken, '.', -1)}`,
+        user.role,
+        this.configService.get<number>('ACCESSTOKENTTL'),
+      );
       return { accessToken, refreshToken };
     } catch (error) {
       throw new InternalServerErrorException();

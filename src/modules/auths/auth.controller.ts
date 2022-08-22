@@ -19,13 +19,13 @@ export class AuthController {
   async userLogin(
     @Body() body: LoginValidator,
     @Res() res: Response,
-    @Session() session: { id: string },
+    @Session() session: { sid: string },
   ) {
-    session.id = randomNumber();
+    session.sid = randomNumber();
     const token = await this.authService.validatorUser(
       body.account,
       body.password,
-      session.id,
+      session.sid,
     );
     res.status(HttpStatus.OK).json(token);
   }

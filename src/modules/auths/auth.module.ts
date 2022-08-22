@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { RedisCacheModule } from '../caches/cache.module';
 import { AccountModule } from '../accounts/account.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -8,13 +7,7 @@ import { JWTModule } from '../jwts/jwt.module';
 import { JoiPipeModule } from 'nestjs-joi';
 
 @Module({
-  imports: [
-    AccountModule,
-    RedisCacheModule,
-    MailModule,
-    JWTModule,
-    JoiPipeModule,
-  ],
+  imports: [AccountModule, MailModule, JWTModule, JoiPipeModule],
   exports: [],
   providers: [AuthService],
   controllers: [AuthController],
