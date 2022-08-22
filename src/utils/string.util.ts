@@ -18,3 +18,7 @@ export function splitString(
 ): string {
   return input.split(separate).at(getPosition);
 }
+
+export function randomNumber(): string {
+  return `${Math.floor(Math.random() * 1000) + Number(new Date())}`;
+}
