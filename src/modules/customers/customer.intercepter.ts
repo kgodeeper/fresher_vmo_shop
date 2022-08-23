@@ -4,7 +4,7 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { catchError, Observable, throwError, timeout } from 'rxjs';
+import { Observable } from 'rxjs';
 import { JWTService } from '../jwts/jwt.service';
 
 @Injectable()
@@ -19,11 +19,6 @@ export class CustomerIntercepter implements NestInterceptor {
       request.get('Authorization').split(' ')[1],
     );
     request.user = username;
-    return next.handle().pipe(
-      timeout(10000),
-      catchError((err) => {
-        return throwError(() => err);
-      }),
-    );
+    return next.handle().pipe();
   }
 }

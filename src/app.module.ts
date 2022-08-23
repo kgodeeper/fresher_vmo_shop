@@ -8,6 +8,8 @@ import { AccountModule } from './modules/accounts/account.module';
 import { AuthModule } from './modules/auths/auth.module';
 import { SessionModule } from 'nestjs-session';
 import { CustomerModule } from './modules/customers/customer.module';
+import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @Module({
   imports: [
@@ -17,6 +19,9 @@ import { CustomerModule } from './modules/customers/customer.module';
     }),
     TypeOrmModule.forRootAsync({
       useClass: databaseConfig,
+    }),
+    MulterModule.register({
+      storage: memoryStorage(),
     }),
     SessionModule.forRoot({
       session: {

@@ -159,4 +159,8 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     user.save();
     this.cacheService.delete(signature.at(-1));
   }
+
+  async getAccountByUsername(username): Promise<Account> {
+    return await this.findOneByCondition({ where: { username } });
+  }
 }
