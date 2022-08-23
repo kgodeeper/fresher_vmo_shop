@@ -1,12 +1,14 @@
 import {
   CanActivate,
   ExecutionContext,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { splitString } from 'src/utils/string.util';
-import { accountRole } from '../../commons/enum.common';
+import { accountRole } from 'src/commons/enum.common';
 import { RedisCacheService } from '../caches/cache.service';
 import { JWTService } from '../jwts/jwt.service';
 
@@ -27,12 +29,15 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = request.get('Authorization');
     const sessionId = request.session.sid;
+    if (!sessionId)
+      throw new HttpException('Invalid session', HttpStatus.BAD_REQUEST);
     if (!token) return false;
     const tokenParts = token.split(' ');
     if (tokenParts[0] !== 'Bearer') return false;
     try {
       const signature = splitString(tokenParts[1], '.', -1);
       const { username } = await this.jwtService.verifyToken(tokenParts[1]);
+      if (requireRoles.length === 0) return true;
       const role = await this.cacheService.get(
         `users:${username}:${sessionId}:${signature}`,
       );
