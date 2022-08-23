@@ -11,6 +11,7 @@ import { JWTService } from '../jwts/jwt.service';
 import { MailService } from '../mailer/mailer.service';
 import { Account } from './account.entity';
 import { VerifyValidator } from './account.validator';
+import { Request } from 'express';
 
 @Injectable()
 export class AccountService extends ServiceUtil<Account, Repository<Account>> {
@@ -162,5 +163,40 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
 
   async getAccountByUsername(username): Promise<Account> {
     return await this.findOneByCondition({ where: { username } });
+  }
+
+  async changePassword(
+    changeInfo: {
+      oldPassword: string;
+      newPassword: string;
+    },
+    username: string,
+    request: Request,
+  ): Promise<any> {
+    let { oldPassword, newPassword } = changeInfo;
+    if (oldPassword === newPassword)
+      throw new HttpException(
+        'old password cant be equals new password',
+        HttpStatus.BAD_REQUEST,
+      );
+    const user = await this.getAccountByUsername(username);
+    if (!user)
+      throw new HttpException('Account is not exist', HttpStatus.BAD_REQUEST);
+    oldPassword = await encrypt(oldPassword);
+    newPassword = await encrypt(newPassword);
+    if (user.password !== oldPassword)
+      throw new HttpException(
+        'Old password is invalid',
+        HttpStatus.BAD_REQUEST,
+      );
+    user.password = newPassword;
+    await user.save();
+    const keys = await this.cacheService.keys(`users:${user.username}:*`);
+    for (let i = 0; i < keys.length; i++) {
+      await this.cacheService.delete(keys[i]);
+    }
+    request.session.destroy(() => {
+      return;
+    });
   }
 }

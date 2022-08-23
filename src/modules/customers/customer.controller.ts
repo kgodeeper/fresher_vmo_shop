@@ -3,17 +3,15 @@ import {
   Controller,
   Put,
   UploadedFile,
-  UseFilters,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { accountRole } from 'src/commons/enum.common';
-import { HttpExceptionFilter } from 'src/exceptions/http.exception';
-import { Roles } from '../guards/roles.decorator';
+import { Roles } from '../decorators/roles.decorator';
 import { RolesGuard } from '../guards/roles.guards';
-import { User } from './customer.decorator';
-import { CustomerIntercepter } from './customer.intercepter';
+import { User } from '../decorators/user.decorator';
+import { UserInterceptor } from '../interceptors/user.interceptor';
 import { CustomerService } from './customer.service';
 import { CustomerValidator } from './customer.validator';
 
@@ -23,7 +21,7 @@ export class CustomerController {
   @Put()
   @Roles(accountRole.CUSTOMER)
   @UseGuards(RolesGuard)
-  @UseInterceptors(CustomerIntercepter, FileInterceptor('file'))
+  @UseInterceptors(UserInterceptor, FileInterceptor('file'))
   async updateCustomerInfo(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CustomerValidator,

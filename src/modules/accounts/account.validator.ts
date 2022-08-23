@@ -20,3 +20,19 @@ export class changePasswordByToken {
   )
   password: string;
 }
+
+export class ChangePasswordValidator {
+  @JoiSchema(
+    Joi.string()
+      .pattern(new RegExp('^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$'))
+      .required(),
+  )
+  oldPassword: string;
+
+  @JoiSchema(
+    Joi.string()
+      .pattern(new RegExp('^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$'))
+      .required(),
+  )
+  newPassword: string;
+}

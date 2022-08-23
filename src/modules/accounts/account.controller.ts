@@ -1,8 +1,27 @@
-import { Body, Controller, Get, Param, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import * as Joi from 'joi';
 import { JoiPipe } from 'nestjs-joi';
+import { User } from '../decorators/user.decorator';
+import { Roles } from '../decorators/roles.decorator';
+import { RolesGuard } from '../guards/roles.guards';
 import { AccountService } from './account.service';
-import { changePasswordByToken, VerifyValidator } from './account.validator';
+import {
+  changePasswordByToken,
+  ChangePasswordValidator,
+  VerifyValidator,
+} from './account.validator';
+import { UserInterceptor } from '../interceptors/user.interceptor';
+import { Request } from 'express';
 
 @Controller('accounts')
 export class UserController {
@@ -10,22 +29,21 @@ export class UserController {
 
   @Put('active')
   async activeAccount(@Body() body: VerifyValidator) {
-    await this.accountService.activeAccount(body);
+    this.accountService.activeAccount(body);
   }
 
-  // post
-  @Get('resend-verify-code/:email')
+  @Post('resend-verify-code/:email')
   async resendVerifyCode(
     @Param('email', new JoiPipe(Joi.string().email())) email,
   ) {
-    await this.accountService.resendVerifyEmail(email);
+    this.accountService.resendVerifyEmail(email);
   }
 
   @Get('forgot-password/:email')
   async forgotPassword(
     @Param('email', new JoiPipe(Joi.string().email())) email,
   ) {
-    await this.accountService.forgotPassword(email);
+    this.accountService.forgotPassword(email);
   }
 
   @Get('confirm-forgot-password/:email/:verifyCode')
@@ -41,6 +59,18 @@ export class UserController {
 
   @Put('change-password-by-token')
   async changePasswordByToken(@Body() body: changePasswordByToken) {
-    await this.accountService.changePasswordByToken(body);
+    this.accountService.changePasswordByToken(body);
+  }
+
+  @Put('change-password')
+  @Roles()
+  @UseGuards(RolesGuard)
+  @UseInterceptors(UserInterceptor)
+  async changePassword(
+    @Body() body: ChangePasswordValidator,
+    @User() user: string,
+    @Req() req: Request,
+  ) {
+    return this.accountService.changePassword(body, user, req);
   }
 }
