@@ -17,14 +17,14 @@ export class Customer extends BaseEntity {
     dob?: string,
     gender?: customerGender,
     avatar?: string,
-    fkAccount?: string,
+    Account?: Account,
   ) {
     super();
     this.fullname = fullname;
     this.dob = dob;
     this.gender = gender;
     this.avatar = avatar;
-    this.fkAccount = fkAccount;
+    this.fkAccount = Account;
   }
   @PrimaryGeneratedColumn('uuid')
   pkCustomer: string;
@@ -62,7 +62,7 @@ export class Customer extends BaseEntity {
   @JoinColumn({
     name: 'fkAccount',
   })
-  fkAccount: string;
+  fkAccount: Account;
 
   updateInformation(
     fullname?: string,

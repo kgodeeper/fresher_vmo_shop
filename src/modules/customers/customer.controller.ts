@@ -1,7 +1,19 @@
-import { Body, Controller, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  ConsoleLogger,
+  Controller,
+  Put,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { accountRole } from 'src/commons/enum.common';
 import { Roles } from '../guards/roles.decorator';
 import { RolesGuard } from '../guards/roles.guards';
+import { User } from './customer.decorator';
+import { CustomerIntercepter } from './customer.intercepter';
 import { CustomerService } from './customer.service';
 import { CustomerValidator } from './customer.validator';
 
@@ -11,7 +23,12 @@ export class CustomerController {
   @Put()
   @Roles(accountRole.CUSTOMER)
   @UseGuards(RolesGuard)
-  async updateCustomerInfo(@Body() body: CustomerValidator): Promise<any> {
-    this.customerService.updateCustomerInfo(body);
+  @UseInterceptors(FileInterceptor('file'), CustomerIntercepter)
+  async updateCustomerInfo(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: CustomerValidator,
+    @User() user: string,
+  ): Promise<any> {
+    this.customerService.updateCustomerInfo(user, body, file);
   }
 }
