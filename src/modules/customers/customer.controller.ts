@@ -24,12 +24,11 @@ export class CustomerController {
   @Roles(accountRole.CUSTOMER)
   @UseGuards(RolesGuard)
   @UseInterceptors(CustomerIntercepter, FileInterceptor('file'))
-  @UseFilters(HttpExceptionFilter)
   async updateCustomerInfo(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: CustomerValidator,
     @User() user: string,
   ): Promise<any> {
-    this.customerService.updateCustomerInfo(user, body, file);
+    return this.customerService.updateCustomerInfo(user, body, file);
   }
 }
