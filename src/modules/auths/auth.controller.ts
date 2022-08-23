@@ -5,6 +5,7 @@ import {
   Res,
   Post,
   Session,
+  HttpCode,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { randomNumber } from 'src/utils/string.util';
@@ -33,5 +34,15 @@ export class AuthController {
   @Post('register')
   async userRegister(@Body() account: RegisterValidator) {
     return this.authService.registerUser(account);
+  }
+
+  @Post('new-token')
+  @HttpCode(HttpStatus.OK)
+  async newToken(
+    @Body()
+    body: { token: string },
+    @Session() session: { sid: string },
+  ): Promise<object> {
+    return this.authService.newToken(body.token, session.sid);
   }
 }

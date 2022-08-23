@@ -92,4 +92,32 @@ export class AuthService {
         throw new HttpException('Email already exist', HttpStatus.BAD_REQUEST);
     }
   }
+
+  async newToken(refreshToken, sessionId): Promise<object> {
+    if (!sessionId)
+      throw new HttpException('Invalid session', HttpStatus.BAD_REQUEST);
+    const { username } = await this.jwtService.verifyToken(refreshToken);
+    const cacheRefreshToken = await this.cacheService.get(
+      `users:${username}:refreshToken`,
+    );
+    if (cacheRefreshToken !== refreshToken)
+      throw new HttpException('Invalid refresh token', HttpStatus.BAD_REQUEST);
+    const accessToken = await this.jwtService.generateToken(
+      { username },
+      { expiresIn: this.configService.get<string>('ACCESSTOKENEXPIRES') },
+    );
+    const user = await this.accountService.getAccountByUsername(username);
+    const keys = await this.cacheService.keys(
+      `users:${username}:${sessionId}:*`,
+    );
+    for (let i = 0; i < keys.length; i++) {
+      await this.cacheService.delete(keys[i]);
+    }
+    await this.cacheService.set(
+      `users:${username}:${sessionId}:${splitString(accessToken, '.', -1)}`,
+      user.role,
+      this.configService.get<number>('ACCESSTOKENTTL'),
+    );
+    return { accessToken };
+  }
 }
