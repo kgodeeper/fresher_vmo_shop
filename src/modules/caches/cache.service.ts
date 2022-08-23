@@ -1,4 +1,5 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { rejects } from 'assert';
 import { Cache } from 'cache-manager';
 
 @Injectable()
@@ -27,5 +28,14 @@ export class RedisCacheService {
 
   async delete(key: string): Promise<void> {
     await this.cache.del(key);
+  }
+
+  async keys(pattern: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.cache.keys(pattern, (err, keys: string[]) => {
+        if (err) reject(err);
+        else resolve(keys);
+      });
+    });
   }
 }
