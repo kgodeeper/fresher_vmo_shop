@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { validChar } from 'src/commons/string.common';
 
 export function generateCode(): string {
   return Math.floor(Math.random() * 900000 + 100000) + '';
@@ -34,4 +35,13 @@ export function formatName(input: string): string {
     return item[0].toUpperCase() + item.substring(1);
   });
   return name.join(' ');
+}
+
+export function randomString(limit: number): string {
+  let rdString = '';
+  for (let i = 0; i < limit; i++) {
+    const pos = Math.floor(Math.random() * validChar.length);
+    rdString += validChar[pos];
+  }
+  return rdString;
 }
