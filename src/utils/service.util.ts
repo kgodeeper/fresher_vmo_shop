@@ -1,4 +1,3 @@
-import { timeStamp } from 'console';
 import { BaseEntity, Repository } from 'typeorm';
 
 export class ServiceUtil<T extends BaseEntity, R extends Repository<T>> {
