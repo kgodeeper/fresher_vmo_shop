@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { customerGender } from 'src/commons/enum.common';
 import { ServiceUtil } from 'src/utils/service.util';
 import { formatName } from 'src/utils/string.util';
