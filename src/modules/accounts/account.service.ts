@@ -199,4 +199,8 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       return;
     });
   }
+
+  async getAll(): Promise<Account[]> {
+    return this.findAll(null);
+  }
 }

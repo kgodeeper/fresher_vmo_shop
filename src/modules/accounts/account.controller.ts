@@ -22,6 +22,8 @@ import {
 } from './account.validator';
 import { UserInterceptor } from '../interceptors/user.interceptor';
 import { Request } from 'express';
+import { accountRole } from 'src/commons/enum.common';
+import { Account } from './account.entity';
 
 @Controller('accounts')
 export class UserController {
@@ -72,5 +74,12 @@ export class UserController {
     @Req() req: Request,
   ) {
     return this.accountService.changePassword(body, user, req);
+  }
+
+  @Get('')
+  @Roles(accountRole.SUPERUSER)
+  @UseGuards(RolesGuard)
+  async getAccount(): Promise<Account[]> {
+    return this.accountService.getAll();
   }
 }
