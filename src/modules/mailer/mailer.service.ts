@@ -39,4 +39,23 @@ export class MailService {
       );
     }
   }
+
+  sendCreateEmail(destination: string, username: string, password: string) {
+    try {
+      this.mailerService.sendMail({
+        to: destination,
+        subject: 'WELCOME NEWBIE',
+        template: './create.template.hbs',
+        context: {
+          username,
+          password,
+        },
+      });
+    } catch {
+      throw new HttpException(
+        'Send mail error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }
