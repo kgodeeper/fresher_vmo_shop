@@ -6,7 +6,7 @@ import { CustomerService } from './customer.service';
 
 @Module({
   imports: [UploadModule, AccountModule],
-  exports: [],
+  exports: [CustomerService],
   controllers: [CustomerController],
   providers: [CustomerService],
 })

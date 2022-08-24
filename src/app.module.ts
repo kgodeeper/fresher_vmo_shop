@@ -10,6 +10,7 @@ import { SessionModule } from 'nestjs-session';
 import { CustomerModule } from './modules/customers/customer.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { DeliveryModule } from './modules/deliveries/delivery.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { memoryStorage } from 'multer';
     CustomerModule,
     AccountModule,
     AuthModule,
+    DeliveryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
