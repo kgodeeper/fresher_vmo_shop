@@ -1,5 +1,7 @@
 import * as Joi from 'joi';
 import { JoiSchema } from 'nestjs-joi';
+import { accountRole } from 'src/commons/enum.common';
+import { uuidRegex } from 'src/utils/regex.util';
 
 export class VerifyValidator {
   @JoiSchema(Joi.string().email().required())
@@ -35,4 +37,35 @@ export class ChangePasswordValidator {
       .required(),
   )
   newPassword: string;
+}
+
+export class AddAccountValidator {
+  @JoiSchema(Joi.string().email().required())
+  email: string;
+
+  @JoiSchema(
+    Joi.string().valid(
+      accountRole.CUSTOMER,
+      accountRole.STAFF,
+      accountRole.SUPERUSER,
+    ),
+  )
+  role: accountRole;
+}
+
+export class PKAccountValidator {
+  @JoiSchema(Joi.string().pattern(uuidRegex).required())
+  account: string;
+}
+
+export class ChangeRoleValidator {
+  @JoiSchema(
+    Joi.string()
+      .valid(accountRole.CUSTOMER, accountRole.STAFF, accountRole.SUPERUSER)
+      .required(),
+  )
+  role: string;
+
+  @JoiSchema(Joi.string().pattern(uuidRegex).required())
+  account: string;
 }

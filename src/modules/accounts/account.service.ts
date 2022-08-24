@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { accountStatus } from 'src/commons/enum.common';
-import { generateCode } from 'src/utils/string.util';
+import { accountRole, accountStatus } from 'src/commons/enum.common';
+import { generateCode, randomString } from 'src/utils/string.util';
 import { encrypt } from 'src/utils/string.util';
 import { ServiceUtil } from 'src/utils/service.util';
 import { DataSource, Repository } from 'typeorm';
@@ -202,5 +202,84 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
 
   async getAll(): Promise<Account[]> {
     return this.findAll(null);
+  }
+
+  async blockAccount(account, currentUser): Promise<any> {
+    const user = await this.findOneByCondition({
+      where: { pkAccount: account },
+    });
+    if (!user)
+      throw new HttpException('Cant find user', HttpStatus.BAD_REQUEST);
+    if (user.username === currentUser)
+      throw new HttpException('Cant block yourself', HttpStatus.BAD_REQUEST);
+    if (user.status === accountStatus.BLOCKED) {
+      throw new HttpException(
+        'Account already blocked',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    user.status = accountStatus.BLOCKED;
+    await user.save();
+  }
+
+  async openAccount(account): Promise<any> {
+    const user = await this.findOneByCondition({
+      where: { pkAccount: account },
+    });
+    if (user.status !== accountStatus.BLOCKED) {
+      throw new HttpException('Account already opened', HttpStatus.BAD_REQUEST);
+    }
+    user.status = accountStatus.ACTIVE;
+    await user.save();
+  }
+
+  async addAccount(
+    accountInfo,
+  ): Promise<{ username: string; password: string }> {
+    const { email, role } = accountInfo;
+    const user = await this.findOneByCondition({ where: { email } });
+    if (user)
+      throw new HttpException('Email already exist', HttpStatus.BAD_REQUEST);
+    const newAccount = new Account(
+      randomString(6),
+      randomString(8),
+      email,
+      role,
+      accountStatus.ACTIVE,
+    );
+    const publicPassword = newAccount.password;
+    await this.repository.insert(newAccount);
+    this.mailService.sendCreateEmail(
+      email,
+      newAccount.username,
+      publicPassword,
+    );
+    return {
+      username: newAccount.username,
+      password: publicPassword,
+    };
+  }
+
+  async changeRole(
+    account: string,
+    role: accountRole,
+    currentUser: string,
+  ): Promise<void> {
+    const user = await this.findOneByCondition({
+      where: { pkAccount: account },
+    });
+    if (!user)
+      throw new HttpException('Account is not exist', HttpStatus.BAD_REQUEST);
+    if (user.username === currentUser)
+      throw new HttpException(
+        'Can not change role of yourself',
+        HttpStatus.BAD_REQUEST,
+      );
+    user.role = role;
+    await user.save();
+    const keys = await this.cacheService.keys(`users:${user.username}:*`);
+    for (let i = 0; i < keys.length; i++) {
+      await this.cacheService.delete(keys[i]);
+    }
   }
 }
