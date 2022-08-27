@@ -1,5 +1,6 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
+import { AppHttpException } from '../exceptions/http.exceptions';
 
 @Injectable()
 export class RedisCacheService {
@@ -36,5 +37,15 @@ export class RedisCacheService {
         else resolve(keys);
       });
     });
+  }
+
+  async changeValue(key, delta, ttl): Promise<any> {
+    try {
+      const current = Number(await this.cache.get(key)) + delta;
+      if (ttl === Infinity) ttl = 31536000;
+      await this.cache.set(key, current, { ttl });
+    } catch {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Bad request');
+    }
   }
 }

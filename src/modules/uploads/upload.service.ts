@@ -24,4 +24,8 @@ export class UploadService {
       else throw new BadRequestException('Upload file fail');
     });
   }
+
+  async removeFromCloudinary(url: string) {
+    v2.uploader.destroy(url);
+  }
 }

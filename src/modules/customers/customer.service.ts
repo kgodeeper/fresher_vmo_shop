@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { customerGender } from 'src/commons/enum.common';
 import { ServiceUtil } from 'src/utils/service.util';
-import { formatName } from 'src/utils/string.util';
+import { formatName, getPublicId } from 'src/utils/string.util';
 import { DataSource, Repository } from 'typeorm';
 import { AccountService } from '../accounts/account.service';
 import { UploadService } from '../uploads/upload.service';
@@ -34,6 +34,13 @@ export class CustomerService extends ServiceUtil<
       customerInfo.avatar = uploaded.url;
     }
     const account = await this.accountService.getAccountByUsername(username);
+    const curCustomer = await this.findOneByCondition({
+      where: { fkAccount: { pkAccount: account.pkAccount } },
+    });
+    const avatar = getPublicId(curCustomer.avatar);
+    if (avatar) {
+      await this.uploadService.removeFromCloudinary(avatar);
+    }
     const customer = new Customer(
       customerInfo.fullname,
       customerInfo.dob,

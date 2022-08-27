@@ -40,30 +40,29 @@ export class AuthService {
       );
     }
     const { username, role } = userAccount;
-    const existRefreshToken = await this.cacheService.get(
+    let refreshToken = await this.cacheService.get(
       `users:${username}:refreshToken`,
     );
-    let refreshToken = existRefreshToken;
     const accessToken = await this.jwtService.generateToken(
       { username },
       { expiresIn: this.configService.get<string>('ACCESSTOKENEXPIRES') },
     );
-    if (existRefreshToken) {
+    if (!refreshToken) {
       refreshToken = await this.jwtService.generateToken(
         { username },
         {
           expiresIn: this.configService.get<string>('REFRESHTOKENEXPIRES'),
         },
       );
+      /**
+       * cache refresh token
+       */
+      await this.cacheService.set(
+        `users:${username}:refreshToken`,
+        refreshToken,
+        this.configService.get<number>('TTLCACHE'),
+      );
     }
-    /**
-     * cache refresh token
-     */
-    await this.cacheService.set(
-      `users:${username}:refreshToken`,
-      refreshToken,
-      this.configService.get<number>('TTLCACHE'),
-    );
     /**
      * cache role
      */

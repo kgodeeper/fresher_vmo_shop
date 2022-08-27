@@ -58,7 +58,9 @@ export class Customer extends BaseEntity {
   })
   updateAt: string;
 
-  @OneToOne(() => Account, (Account) => Account.pkAccount)
+  @OneToOne(() => Account, (Account) => Account.pkAccount, {
+    cascade: ['remove'],
+  })
   @JoinColumn({
     name: 'fkAccount',
   })

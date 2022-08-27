@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   Post,
   Put,
@@ -36,6 +37,13 @@ export class ProductController {
   )
   async createProduct(@Body() body: ProductValidator, @UploadedFiles() files) {
     return this.productService.createProduct(body, files.barcode, files.avatar);
+  }
+
+  @Get('alls/:page')
+  @Roles(accountRole.STAFF, accountRole.SUPERUSER)
+  @UseGuards(RolesGuard)
+  async getAllProduct(@Param() params) {
+    return this.productService.getAllProduct(params.page);
   }
 
   @Put(':productId')

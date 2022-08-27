@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { accountRole } from 'src/commons/enum.common';
 import { Roles } from '../decorators/roles.decorator';
 import { User } from '../decorators/user.decorator';
@@ -21,6 +22,7 @@ import {
 } from './delivery.validator';
 
 @Controller('deliveries')
+@ApiTags('Deliveries')
 export class DeliveryController {
   constructor(private deliveryService: DeliveryService) {}
   @Post()

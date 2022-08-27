@@ -1,15 +1,14 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Multer } from 'multer';
 import { commonStatus } from 'src/commons/enum.common';
+import { NUMBER_OF_PAGE_ELEMENT } from 'src/utils/const.util';
+import { getPageNumber } from 'src/utils/number.util';
 import { ServiceUtil } from 'src/utils/service.util';
 import { getPublicId } from 'src/utils/string.util';
 import { DataSource, Repository } from 'typeorm';
 import { CategoryService } from '../categories/category.service';
-import { PictureService } from '../pictures/picture.service';
 import { SuplierService } from '../supliers/suplier.service';
 import { UploadService } from '../uploads/upload.service';
 import { Product } from './product.entity';
-import { UpdateProductValidator } from './product.validator';
 
 @Injectable()
 export class ProductService extends ServiceUtil<Product, Repository<Product>> {
@@ -69,6 +68,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     const product = new Product(
       name,
       barcodeUrl,
+      avatarUrl,
       importPrice,
       exportPrice,
       weight,
@@ -77,6 +77,27 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       suplier,
     );
     await product.save();
+  }
+
+  async getAllProduct(page): Promise<object> {
+    if (page <= 0) {
+      throw new HttpException('Page not found', HttpStatus.BAD_REQUEST);
+    }
+    const countProduct = await this.repository.findAndCount({});
+    const totalPage = await getPageNumber(countProduct[1]);
+    const products = await this.repository
+      .createQueryBuilder('product')
+      .offset((page - 1) * NUMBER_OF_PAGE_ELEMENT)
+      .limit(NUMBER_OF_PAGE_ELEMENT)
+      .getMany();
+    if (products.length === 0) {
+      throw new HttpException('Out of range', HttpStatus.BAD_REQUEST);
+    }
+    return {
+      page,
+      totalPage,
+      products,
+    };
   }
 
   async changeStatus(status: commonStatus, productId) {

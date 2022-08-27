@@ -27,6 +27,7 @@
     "@nestjs/core": "^9.0.0",
     "@nestjs/jwt": "^9.0.0",
     "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/swagger": "^6.0.5",
     "@types/express-session": "^1.17.5",
     "bcrypt": "^5.0.1",
     "cache-manager": "^4.1.0",

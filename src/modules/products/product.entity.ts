@@ -17,6 +17,7 @@ export class Product extends BaseEntity {
   constructor(
     name: string,
     barcode: string,
+    avartar: string,
     importPrice: number,
     exportPrice: number,
     weight: number,
@@ -33,6 +34,7 @@ export class Product extends BaseEntity {
     this.description = description;
     this.category = category;
     this.suplier = suplier;
+    this.avatar = avartar;
   }
   @PrimaryGeneratedColumn('uuid')
   pkProduct: string;

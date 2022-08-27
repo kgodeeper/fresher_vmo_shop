@@ -14,8 +14,10 @@ import { User } from '../decorators/user.decorator';
 import { UserInterceptor } from '../interceptors/user.interceptor';
 import { CustomerService } from './customer.service';
 import { CustomerValidator } from './customer.validator';
+import { ApiTags } from '@nestjs/swagger';
 
 @Controller('customers')
+@ApiTags('Customers')
 export class CustomerController {
   constructor(private customerService: CustomerService) {}
   @Put()

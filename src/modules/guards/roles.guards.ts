@@ -1,7 +1,6 @@
 import {
   CanActivate,
   ExecutionContext,
-  HttpException,
   HttpStatus,
   Inject,
   Injectable,
@@ -11,6 +10,7 @@ import { splitString } from 'src/utils/string.util';
 import { accountRole } from 'src/commons/enum.common';
 import { RedisCacheService } from '../caches/cache.service';
 import { JWTService } from '../jwts/jwt.service';
+import { AppHttpException } from '../exceptions/http.exceptions';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -29,8 +29,12 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = request.get('Authorization');
     const sessionId = request.session.sid;
-    if (!sessionId)
-      throw new HttpException('Invalid session', HttpStatus.BAD_REQUEST);
+    if (!sessionId) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Your session is not vaid',
+      );
+    }
     if (!token) return false;
     const tokenParts = token.split(' ');
     if (tokenParts[0] !== 'Bearer') return false;

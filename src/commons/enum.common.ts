@@ -20,3 +20,8 @@ export enum customerGender {
   FEMALE = 'female',
   OTHER = 'other',
 }
+
+export enum commonStatus {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+}

@@ -11,6 +11,9 @@ import { CustomerModule } from './modules/customers/customer.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { DeliveryModule } from './modules/deliveries/delivery.module';
+import { CategoryModule } from './modules/categories/category.module';
+import { SuplierModule } from './modules/supliers/suplier.module';
+import { ProductModule } from './modules/products/product.module';
 
 @Module({
   imports: [
@@ -35,6 +38,9 @@ import { DeliveryModule } from './modules/deliveries/delivery.module';
     AccountModule,
     AuthModule,
     DeliveryModule,
+    CategoryModule,
+    SuplierModule,
+    ProductModule,
   ],
   controllers: [AppController],
   providers: [AppService],
