@@ -1,4 +1,5 @@
 import { BaseEntity, Repository } from 'typeorm';
+import { NUMBER_OF_PAGE_ELEMENT } from './const.util';
 
 export class ServiceUtil<T extends BaseEntity, R extends Repository<T>> {
   repository: R;

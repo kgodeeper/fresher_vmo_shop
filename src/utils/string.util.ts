@@ -45,3 +45,8 @@ export function randomString(limit: number): string {
   }
   return rdString;
 }
+
+export function getPublicId(url: string): string | null {
+  if (!url) return url;
+  return url.split('/').at(-1)?.split('.')[0];
+}
