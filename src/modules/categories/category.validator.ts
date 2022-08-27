@@ -1,19 +1,25 @@
-import * as Joi from 'joi';
-import { JoiSchema } from 'nestjs-joi';
-import { categoryStatus } from 'src/commons/enum.common';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { commonStatus } from 'src/commons/enum.common';
 
-export class CategoryValidator {
-  @JoiSchema(Joi.string().required())
+export class CategoryDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
-  @JoiSchema(Joi.string().valid(categoryStatus.ACTIVE, categoryStatus.INACTIVE))
-  status: string;
+  @ApiProperty()
+  @IsEnum(commonStatus)
+  @IsNotEmpty()
+  status: commonStatus;
 }
 
-export class UpdateCategoryValidator {
-  @JoiSchema(Joi.string())
+export class UpdateCategoryDto {
+  @IsString()
+  @IsOptional()
   name: string;
 
-  @JoiSchema(Joi.string().valid(categoryStatus.ACTIVE, categoryStatus.INACTIVE))
-  status: string;
+  @IsEnum(commonStatus)
+  @IsOptional()
+  status: commonStatus;
 }

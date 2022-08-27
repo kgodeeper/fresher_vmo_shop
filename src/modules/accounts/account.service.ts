@@ -1,17 +1,21 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { accountRole, accountStatus } from 'src/commons/enum.common';
 import { generateCode, randomString } from 'src/utils/string.util';
 import { encrypt } from 'src/utils/string.util';
 import { ServiceUtil } from 'src/utils/service.util';
 import { DataSource, Repository } from 'typeorm';
-import { RegisterValidator } from '../auths/auth.validator';
+import { RegisterDto } from '../auths/auth.dto';
 import { RedisCacheService } from '../caches/cache.service';
 import { JWTService } from '../jwts/jwt.service';
 import { MailService } from '../mailer/mailer.service';
 import { Account } from './account.entity';
-import { VerifyValidator } from './account.validator';
+import { VerifyDto } from './account.dto';
 import { Request } from 'express';
+import { AppHttpException } from '../exceptions/http.exceptions';
+import { Paginate } from 'src/utils/interface.util';
+import { getPageNumber } from 'src/utils/number.util';
+import { NUMBER_OF_PAGE_ELEMENT } from 'src/utils/const.util';
 
 @Injectable()
 export class AccountService extends ServiceUtil<Account, Repository<Account>> {
@@ -42,13 +46,18 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     return this.findOneByCondition({ where: [{ username }, { email }] });
   }
 
-  async createAccount(account: RegisterValidator): Promise<void> {
+  async createAccount(account: RegisterDto): Promise<void> {
     await this.addRecord(
       new Account(account.username, account.password, account.email),
     );
+    this.cacheService.changeValue(
+      this.configService.get<string>('ACCOUNT_ALL_KEY'),
+      1,
+      Infinity,
+    );
   }
 
-  async activeAccount(activeInfo: VerifyValidator): Promise<void> {
+  async activeAccount(activeInfo: VerifyDto): Promise<void> {
     const verifyCode = await this.cacheService.get(activeInfo.email);
     if (verifyCode) {
       const account = await this.findOneByCondition({
@@ -60,21 +69,21 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
           account.save();
           await this.cacheService.delete(activeInfo.email);
         } else {
-          throw new HttpException(
-            'Verify code is not correct',
+          throw new AppHttpException(
             HttpStatus.BAD_REQUEST,
+            'Verify code is not correct',
           );
         }
       } else {
-        throw new HttpException(
-          'Account with this email is not exist',
+        throw new AppHttpException(
           HttpStatus.BAD_REQUEST,
+          'Account with this email is not exist',
         );
       }
     } else {
-      throw new HttpException(
-        'Verify code for this email is not exist',
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Verify code for this email is not exist',
       );
     }
   }
@@ -82,11 +91,11 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   async resendVerifyEmail(email: string): Promise<void> {
     const user = await this.findOneByCondition({ where: { email } });
     if (!user)
-      throw new HttpException('Email is not exist', HttpStatus.BAD_REQUEST);
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Email is not exist');
     if (user.status !== accountStatus.INACTIVE)
-      throw new HttpException(
-        `Account already ${user.status}`,
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        `Account already ${user.status}`,
       );
     this.sendVerifyEmail(email);
   }
@@ -106,7 +115,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       where: { email, status: accountStatus.ACTIVE },
     });
     if (!user)
-      throw new HttpException('Email is not exist', HttpStatus.BAD_REQUEST);
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Email is not exist');
     const verifyCode = generateCode();
     this.mailService.sendForgotPasswordCode(email, verifyCode);
     this.cacheService.set(
@@ -119,17 +128,17 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   async confirmForgotPassword(email: string, code: string) {
     const verifyCode = await this.cacheService.get(email);
     if (!verifyCode)
-      throw new HttpException(
-        'Verify code for this email is not exist',
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Verify code for this email is not exist',
       );
     if (verifyCode !== code)
-      throw new HttpException(
-        'Verify code is not correct',
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Verify code is not correct',
       );
     await this.cacheService.delete(email);
-    const confirmToken = this.jwtService.generateToken(
+    const confirmToken = await this.jwtService.generateToken(
       { email },
       { expiresIn: this.configService.get<number>('CONFIRMTOKENEXPIRES') },
     );
@@ -139,25 +148,28 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       email,
       this.configService.get<number>('TOKENTTL'),
     );
-    return confirmToken;
+    return { confirmToken };
   }
 
   async changePasswordByToken({ password, presentToken }) {
     const signature = (await presentToken).split('.');
     const email = await this.cacheService.get(signature.at(-1));
     if (!email)
-      throw new HttpException(
-        'Dont have change password require',
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Dont have change password require',
       );
-    const user = await this.findOneByCondition({
+    const userAccount = await this.findOneByCondition({
       where: { email, status: accountStatus.ACTIVE },
     });
 
-    if (!user)
-      throw new HttpException('User is not exist', HttpStatus.BAD_REQUEST);
-    user.password = await encrypt(password);
-    user.save();
+    if (!userAccount)
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Account with this email is not active or exist',
+      );
+    userAccount.password = await encrypt(password);
+    userAccount.save();
     this.cacheService.delete(signature.at(-1));
   }
 
@@ -175,23 +187,28 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   ): Promise<any> {
     let { oldPassword, newPassword } = changeInfo;
     if (oldPassword === newPassword)
-      throw new HttpException(
-        'old password cant be equals new password',
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Old password can not be equals new password',
       );
-    const user = await this.getAccountByUsername(username);
-    if (!user)
-      throw new HttpException('Account is not exist', HttpStatus.BAD_REQUEST);
+    const userAccount = await this.getAccountByUsername(username);
+    if (!userAccount)
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Account with this id is not exist',
+      );
     oldPassword = await encrypt(oldPassword);
     newPassword = await encrypt(newPassword);
-    if (user.password !== oldPassword)
-      throw new HttpException(
-        'Old password is invalid',
+    if (userAccount.password !== oldPassword)
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Your old password is not correct',
       );
-    user.password = newPassword;
-    await user.save();
-    const keys = await this.cacheService.keys(`users:${user.username}:*`);
+    userAccount.password = newPassword;
+    await userAccount.save();
+    const keys = await this.cacheService.keys(
+      `users:${userAccount.username}:*`,
+    );
     for (let i = 0; i < keys.length; i++) {
       await this.cacheService.delete(keys[i]);
     }
@@ -200,46 +217,87 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     });
   }
 
-  async getAll(): Promise<Account[]> {
-    return this.findAll(null);
+  async getAll(page: number): Promise<Paginate<Account>> {
+    if (page <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is out of range',
+      );
+    }
+    let totalElements = 0;
+    totalElements = Number(
+      await this.cacheService.get(
+        this.configService.get<string>('ACCOUNT_ALL_KEY'),
+      ),
+    );
+    const totalPages = getPageNumber(totalElements);
+    const accounts = await this.repository
+      .createQueryBuilder('account')
+      .offset((page - 1) * NUMBER_OF_PAGE_ELEMENT)
+      .limit(NUMBER_OF_PAGE_ELEMENT)
+      .getMany();
+    if (accounts.length === 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is out of range',
+      );
+    }
+    return {
+      page,
+      totalPages,
+      totalElements,
+      elements: accounts,
+    };
   }
 
   async blockAccount(account, currentUser): Promise<any> {
-    const user = await this.findOneByCondition({
+    const userAccount = await this.findOneByCondition({
       where: { pkAccount: account },
     });
-    if (!user)
-      throw new HttpException('Cant find user', HttpStatus.BAD_REQUEST);
-    if (user.username === currentUser)
-      throw new HttpException('Cant block yourself', HttpStatus.BAD_REQUEST);
-    if (user.status === accountStatus.BLOCKED) {
-      throw new HttpException(
-        'Account already blocked',
+    if (!userAccount)
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Account with this id is not exist',
+      );
+    if (userAccount.username === currentUser)
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Unable to block yourself',
+      );
+    if (userAccount.status === accountStatus.BLOCKED) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'This account is already blocked',
       );
     }
-    user.status = accountStatus.BLOCKED;
-    await user.save();
+    userAccount.status = accountStatus.BLOCKED;
+    await userAccount.save();
   }
 
   async openAccount(account): Promise<any> {
-    const user = await this.findOneByCondition({
+    const userAccount = await this.findOneByCondition({
       where: { pkAccount: account },
     });
-    if (user.status !== accountStatus.BLOCKED) {
-      throw new HttpException('Account already opened', HttpStatus.BAD_REQUEST);
+    if (userAccount.status !== accountStatus.BLOCKED) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Thia account is already opened',
+      );
     }
-    user.status = accountStatus.ACTIVE;
-    await user.save();
+    userAccount.status = accountStatus.ACTIVE;
+    await userAccount.save();
   }
 
   async addAccount(
     accountInfo,
   ): Promise<{ username: string; password: string }> {
     const { email, role } = accountInfo;
-    const user = await this.findOneByCondition({ where: { email } });
-    if (user)
-      throw new HttpException('Email already exist', HttpStatus.BAD_REQUEST);
+    const userAccount = await this.findOneByCondition({ where: { email } });
+    if (userAccount)
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Account with this email already exist',
+      );
     const newAccount = new Account(
       randomString(6),
       randomString(8),
@@ -254,6 +312,11 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       newAccount.username,
       publicPassword,
     );
+    await this.cacheService.changeValue(
+      this.configService.get<string>('ACCOUNT_ALL_KEY'),
+      1,
+      Infinity,
+    );
     return {
       username: newAccount.username,
       password: publicPassword,
@@ -265,19 +328,24 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     role: accountRole,
     currentUser: string,
   ): Promise<void> {
-    const user = await this.findOneByCondition({
+    const userAccount = await this.findOneByCondition({
       where: { pkAccount: account },
     });
-    if (!user)
-      throw new HttpException('Account is not exist', HttpStatus.BAD_REQUEST);
-    if (user.username === currentUser)
-      throw new HttpException(
-        'Can not change role of yourself',
+    if (!userAccount)
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Account with id is not exist',
       );
-    user.role = role;
-    await user.save();
-    const keys = await this.cacheService.keys(`users:${user.username}:*`);
+    if (userAccount.username === currentUser)
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Can not change role of yourself',
+      );
+    userAccount.role = role;
+    await userAccount.save();
+    const keys = await this.cacheService.keys(
+      `users:${userAccount.username}:*`,
+    );
     for (let i = 0; i < keys.length; i++) {
       await this.cacheService.delete(keys[i]);
     }

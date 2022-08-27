@@ -1,4 +1,4 @@
-import { categoryStatus } from 'src/commons/enum.common';
+import { commonStatus } from 'src/commons/enum.common';
 import {
   BaseEntity,
   Column,
@@ -10,7 +10,7 @@ import {
 
 @Entity()
 export class Category extends BaseEntity {
-  constructor(name: string, banner: string, status?: categoryStatus) {
+  constructor(name: string, banner: string, status?: commonStatus) {
     super();
     this.name = name;
     this.banner = banner;
@@ -27,10 +27,10 @@ export class Category extends BaseEntity {
 
   @Column({
     type: 'enum',
-    enum: categoryStatus,
-    default: categoryStatus.ACTIVE,
+    enum: commonStatus,
+    default: commonStatus.ACTIVE,
   })
-  status: categoryStatus;
+  status: commonStatus;
 
   @CreateDateColumn({
     default: `now()`,

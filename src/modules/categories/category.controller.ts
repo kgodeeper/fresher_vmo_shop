@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Param,
-  Patch,
   Post,
   Put,
   UploadedFile,
@@ -11,18 +10,27 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { accountRole } from 'src/commons/enum.common';
 import { Roles } from '../decorators/roles.decorator';
 import { RolesGuard } from '../guards/roles.guards';
+import { CategoryInterceptor } from '../interceptors/category.interceptor';
 import { CategoryService } from './category.service';
-import {
-  CategoryValidator,
-  UpdateCategoryValidator,
-} from './category.validator';
+import * as dto from './category.validator';
 
 @Controller('categories')
+@ApiTags('Categories')
 export class CategoryController {
+  fileSchema = {};
   constructor(private categoryService: CategoryService) {}
+  @ApiParam({ name: 'page' })
+  @ApiBearerAuth()
   @Get('/alls/:page')
   @Roles(accountRole.STAFF, accountRole.SUPERUSER)
   @UseGuards(RolesGuard)
@@ -31,32 +39,74 @@ export class CategoryController {
   }
 
   @Get('/active/:page')
+  @ApiParam({ name: 'page' })
+  @UseInterceptors(CategoryInterceptor)
   async getAllActiveCategories(@Param() params) {
-    return this.categoryService.getAllActiveCategories(params.page);
+    return this.categoryService.getAllActiveCategories(Number(params.page));
   }
 
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['name', 'status', 'banner'],
+      properties: {
+        name: {
+          type: 'string',
+        },
+        status: {
+          type: 'string',
+        },
+        banner: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
   @Post()
   @Roles(accountRole.SUPERUSER, accountRole.STAFF)
   @UseGuards(RolesGuard)
   @UseInterceptors(FileInterceptor('banner'))
   async addCategory(
-    @Body() category: CategoryValidator,
+    @Body() category: dto.CategoryDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.categoryService.addCategory(category, file);
   }
 
-  @Put(':categoryID')
+  @ApiParam({ name: 'categoryId' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+        },
+        status: {
+          type: 'string',
+        },
+        banner: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiBearerAuth()
+  @Put(':categoryId')
   @Roles(accountRole.SUPERUSER, accountRole.STAFF)
   @UseGuards(RolesGuard)
   @UseInterceptors(FilesInterceptor('banner'))
-  async changeCategoryStatus(
+  async updateCategory(
     @Param() params,
     @UploadedFile() file: Express.Multer.File,
-    @Body() category: UpdateCategoryValidator,
+    @Body() category: dto.UpdateCategoryDto,
   ) {
     return this.categoryService.updateCategory(
-      params.categoryID,
+      params.categoryId,
       category,
       file,
     );

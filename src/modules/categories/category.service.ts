@@ -1,11 +1,15 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { categoryStatus } from 'src/commons/enum.common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { commonStatus } from 'src/commons/enum.common';
+import { Paginate } from 'src/utils/interface.util';
 import { getPageNumber } from 'src/utils/number.util';
 import { ServiceUtil } from 'src/utils/service.util';
 import { DataSource, Repository } from 'typeorm';
+import { RedisCacheService } from '../caches/cache.service';
+import { AppHttpException } from '../exceptions/http.exceptions';
 import { UploadService } from '../uploads/upload.service';
 import { Category } from './category.entity';
-import { UpdateCategoryValidator } from './category.validator';
+import { UpdateCategoryDto } from './category.validator';
 
 @Injectable()
 export class CategoryService extends ServiceUtil<
@@ -14,52 +18,77 @@ export class CategoryService extends ServiceUtil<
 > {
   constructor(
     private dataSource: DataSource,
+    private configService: ConfigService,
+    @Inject(RedisCacheService)
+    private cacheService: RedisCacheService,
     private uploadService: UploadService,
   ) {
     super(dataSource.getRepository(Category));
   }
 
-  async getAllCategories(page: number): Promise<any> {
-    if (page == 0)
-      throw new HttpException('Page is not valid', HttpStatus.BAD_REQUEST);
-    const countResult = await this.repository.findAndCount();
-    const countNumber = countResult[1];
-    const totalPage = getPageNumber(countNumber);
+  async getAllCategories(page: number): Promise<Paginate<Category>> {
+    if (page == 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is not valid',
+      );
+    }
+    const totalElements = Number(
+      await this.cacheService.get(
+        this.configService.get<string>('CATEGORY_ALL_KEY'),
+      ),
+    );
+    const totalPages = getPageNumber(totalElements);
     const categories = await this.repository
       .createQueryBuilder('category')
       .offset((page - 1) * 20)
       .limit(20)
       .getMany();
     if (categories.length == 0) {
-      throw new HttpException('Out of range', HttpStatus.BAD_REQUEST);
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is out of range',
+      );
     }
     return {
       page,
-      totalPage,
-      categories,
+      totalPages,
+      totalElements,
+      elements: categories,
     };
   }
 
-  async getAllActiveCategories(page): Promise<any> {
-    if (page == 0)
-      throw new HttpException('Page is not valid', HttpStatus.BAD_REQUEST);
-    const countResult = await this.repository.findAndCount();
-    const countNumber = countResult[1];
-    const totalPage = getPageNumber(countNumber);
+  async getAllActiveCategories(page: number): Promise<Paginate<Category>> {
+    if (page <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is not valid',
+      );
+    }
+    const totalElements = Number(
+      await this.cacheService.get(
+        this.configService.get<string>('CATEGORY_ACTIVE_KEY'),
+      ),
+    );
+    const totalPages = getPageNumber(totalElements);
     const categories = await this.repository
       .createQueryBuilder('category')
-      .where('status=:status', { status: categoryStatus.ACTIVE })
+      .where('status=:status', { status: commonStatus.ACTIVE })
       .offset((page - 1) * 20)
       .limit(20)
       .getMany();
     if (categories.length == 0) {
-      throw new HttpException('Out of range', HttpStatus.BAD_REQUEST);
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is out of range',
+      );
     }
     return {
       page,
-      totalPage,
-      categories,
-    };
+      totalPages,
+      totalElements,
+      elements: categories,
+    } as Paginate<Category>;
   }
 
   async addCategory(categoryInfo, file: Express.Multer.File) {
@@ -69,9 +98,9 @@ export class CategoryService extends ServiceUtil<
       .where(`LOWER(name) = LOWER(:name)`, { name: categoryInfo.name })
       .getOne();
     if (exist)
-      throw new HttpException(
-        'Category name already exist',
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'Category with this name already exist',
       );
     if (file) {
       const uploaded = await this.uploadService.uploadToCloudinary(file);
@@ -80,33 +109,75 @@ export class CategoryService extends ServiceUtil<
     const category = new Category(
       categoryInfo.name,
       url,
-      categoryInfo.status as categoryStatus,
+      categoryInfo.status as commonStatus,
     );
     await this.repository.insert(category);
+    const status = categoryInfo.status;
+    /**
+     * Cahe quantity of category
+     */
+    await this.cacheService.changeValue(
+      this.configService.get<string>('CATEGORY_ALL_KEY'),
+      1,
+      Infinity,
+    );
+    if (status == commonStatus.ACTIVE) {
+      await this.cacheService.changeValue(
+        this.configService.get<string>('CATEGORY_ACTIVE_KEY'),
+        1,
+        Infinity,
+      );
+    }
   }
 
   async updateCategory(
     categoryId,
-    categoryInfo: UpdateCategoryValidator,
+    categoryInfo: UpdateCategoryDto,
     file: Express.Multer.File,
   ) {
     let url;
     const category = await this.findOneByCondition({
       where: { pkCategory: categoryId },
     });
-    if (category.name.toLowerCase() === categoryInfo.name.toLowerCase()) {
-      throw new HttpException(
-        `Category name already exist`,
+    const oldStatus = category.status;
+    const { name, status } = categoryInfo;
+    if (!name && !status) {
+      throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
+        'No information to update',
+      );
+    }
+    if (category.name.toLowerCase() === categoryInfo.name.toLowerCase()) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Category with this name already exist',
       );
     }
     if (file) {
       const uploaded = await this.uploadService.uploadToCloudinary(file);
       url = uploaded.url;
     }
-    const { name, status } = categoryInfo;
     const banner = url;
-    const newCategory = new Category(name, banner, status as categoryStatus);
+    const newCategory = new Category(name, banner, status as commonStatus);
     await this.repository.update({ pkCategory: categoryId }, newCategory);
+    /**
+     * Cache category active after update
+     */
+    if (oldStatus === commonStatus.INACTIVE && status === commonStatus.ACTIVE) {
+      await this.cacheService.changeValue(
+        this.configService.get<string>('CATEGORY_ACTIVE_KEY'),
+        1,
+        Infinity,
+      );
+    } else if (
+      oldStatus === commonStatus.ACTIVE &&
+      status === commonStatus.INACTIVE
+    ) {
+      await this.cacheService.changeValue(
+        this.configService.get<string>('CATEGORY_ACTIVE_KEY'),
+        -1,
+        Infinity,
+      );
+    }
   }
 }
