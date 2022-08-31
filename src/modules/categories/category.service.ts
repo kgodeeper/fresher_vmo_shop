@@ -33,6 +33,7 @@ export class CategoryService extends ServiceUtil<
     // by default, position of new category is largest position of active category in db
     const maxPosition = await this.getMaxPosition();
     const lastPosition = Number(maxPosition?.maxPos) + 1;
+    console.log(lastPosition);
     const existCategory = await this.getExistCategory(categoryInfo.name);
     if (existCategory) {
       throw new AppHttpException(
@@ -43,7 +44,10 @@ export class CategoryService extends ServiceUtil<
     /**
      * upload file to cloundinary
      */
-    const uploaded = await this.uploadSerivice.uploadToCloudinary(file);
+    const uploaded = await this.uploadSerivice.uploadToCloudinary(
+      file,
+      'categories',
+    );
     const category = new Category(
       categoryInfo.name,
       uploaded.url,
@@ -81,8 +85,12 @@ export class CategoryService extends ServiceUtil<
     if (file) {
       await this.uploadSerivice.removeFromCloudinary(
         getPublicId(existCategory.banner),
+        'categories',
       );
-      const uploaded = await this.uploadSerivice.uploadToCloudinary(file);
+      const uploaded = await this.uploadSerivice.uploadToCloudinary(
+        file,
+        'categories',
+      );
       banner = uploaded.url;
     }
     existCategory.banner = banner;
@@ -189,7 +197,6 @@ export class CategoryService extends ServiceUtil<
     return this.repository
       .createQueryBuilder()
       .select('MAX("position") as "maxPos"')
-      .where('"status" = :status')
       .getRawOne();
   }
 
@@ -200,5 +207,9 @@ export class CategoryService extends ServiceUtil<
         name,
       })
       .getOne();
+  }
+
+  async getById(id: string): Promise<Category> {
+    return this.repository.findOne({ where: { pkCategory: id } });
   }
 }

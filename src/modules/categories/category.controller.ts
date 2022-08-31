@@ -64,7 +64,7 @@ export class CategoryController {
   })
   @Post()
   @UseGuards(AuthGuard, RoleGuard)
-  @RequireRoles(Role.SUPERUSER)
+  @RequireRoles(Role.SUPERUSER, Role.STAFF)
   @UseInterceptors(FileInterceptor('banner'))
   async addCategory(
     @Body() body: AddCategoryDto,

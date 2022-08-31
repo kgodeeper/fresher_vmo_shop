@@ -350,13 +350,17 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
         `Account with this email was ${existAccount.status}`,
       );
     }
-    const uploaded = await this.uploadService.uploadToCloudinary(file);
+    const uploaded = await this.uploadService.uploadToCloudinary(
+      file,
+      `avatars`,
+    );
     /**
      * if have avatar in cloud, remove it
      */
     if (existAccount.avatar) {
       await this.uploadService.removeFromCloudinary(
         getPublicId(existAccount.avatar),
+        'avatars',
       );
     }
     /**
