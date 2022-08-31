@@ -11,6 +11,7 @@ import { memoryStorage } from 'multer';
 import { CustomerModule } from './modules/customers/customer.module';
 import { DeliveryModule } from './modules/deliveries/delivery.module';
 import { CategoryModule } from './modules/categories/category.module';
+import { ProductModule } from './modules/products/product.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CategoryModule } from './modules/categories/category.module';
     CustomerModule,
     DeliveryModule,
     CategoryModule,
+    ProductModule,
   ],
   controllers: [],
   providers: [],
