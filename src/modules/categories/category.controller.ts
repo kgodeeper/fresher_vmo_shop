@@ -162,10 +162,41 @@ export class CategoryController {
     return this.categoryService.removeCategory(params.id);
   }
 
+  @ApiOkResponse({
+    description: 'Get category success',
+  })
+  @ApiBadRequestResponse({
+    description: 'Page not found, Out of range',
+  })
   @Get('active/:page')
   async getActiveCategory(
     @Param('page', new ParseIntPipe()) page: number,
   ): Promise<IPaginate<Category>> {
     return this.categoryService.getActiveCategory(page);
+  }
+
+  @ApiOkResponse({
+    description: 'Get category success',
+  })
+  @ApiBadRequestResponse({
+    description: 'Get category failure',
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthornized',
+  })
+  @ApiForbiddenResponse({
+    description: 'Forbidden',
+  })
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'page',
+  })
+  @Get('all/:page')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.STAFF, Role.SUPERUSER)
+  async getAllCategory(
+    @Param('page', new ParseIntPipe()) page: number,
+  ): Promise<IPaginate<Category>> {
+    return this.categoryService.getAllCategories(page);
   }
 }

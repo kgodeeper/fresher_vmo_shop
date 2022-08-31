@@ -139,6 +139,36 @@ export class CategoryService extends ServiceUtil<
     };
   }
 
+  async getAllCategories(page: number): Promise<IPaginate<Category>> {
+    /**
+     * check valid page
+     */
+    if (page <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is not valid',
+      );
+    }
+    const totalElements = Number(
+      await this.cacheService.get('shop:all:categories'),
+    );
+    const elements = await this.repository
+      .createQueryBuilder()
+      .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
+      .limit(MAX_ELEMENTS_OF_PAGE)
+      .orderBy('position', 'ASC')
+      .getMany();
+    if (elements.length === 0) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
+    }
+    return {
+      page,
+      totalPages: getTotalPages(totalElements),
+      totalElements,
+      elements,
+    };
+  }
+
   async checkCategoryById(id: string): Promise<Category> {
     const existCategory = await this.findOneByCondition({ pkCategory: id });
     if (!existCategory) {
