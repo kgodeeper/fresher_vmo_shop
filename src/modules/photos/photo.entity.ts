@@ -16,7 +16,7 @@ export class Photo extends BaseEntity {
   @Column()
   path: string;
 
-  @ManyToOne(() => Product)
+  @ManyToOne(() => Product, (product) => product.photos)
   @JoinColumn({
     name: 'fkProduct',
   })
