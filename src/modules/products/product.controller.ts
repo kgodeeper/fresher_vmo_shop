@@ -28,20 +28,13 @@ import { ProductService } from './product.service';
 
 @Controller('products')
 @ApiTags('Products')
+@ApiOkResponse()
+@ApiBadRequestResponse()
 export class ProductController {
   constructor(private productService: ProductService) {}
-  @ApiOkResponse({
-    description: 'Add product success',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
-  @ApiBadRequestResponse({
-    description: 'Add product failure',
-  })
+
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -92,7 +85,7 @@ export class ProductController {
     return this.productService.addProduct(files.barcode, files.avatar, body);
   }
 
-  @Put()
+  @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -112,6 +105,9 @@ export class ProductController {
       },
     },
   })
+  @Put()
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.STAFF, Role.SUPERUSER)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'avatar', maxCount: 1 },

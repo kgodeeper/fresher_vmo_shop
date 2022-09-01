@@ -11,7 +11,6 @@ import { IPaginate } from '../../utils/interface.util';
 import { RedisCacheService } from '../caches/cache.service';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
-import { MAX } from 'class-validator';
 
 @Injectable()
 export class CategoryService extends ServiceUtil<
@@ -211,5 +210,22 @@ export class CategoryService extends ServiceUtil<
 
   async getById(id: string): Promise<Category> {
     return this.repository.findOne({ where: { pkCategory: id } });
+  }
+
+  async checkCategory(id: string): Promise<Category> {
+    const existCategory = await this.getById(id);
+    if (!existCategory) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Category with this id is not exist`,
+      );
+    }
+    if (existCategory.status !== Status.ACTIVE) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Category was ${existCategory.status}`,
+      );
+    }
+    return existCategory;
   }
 }

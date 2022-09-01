@@ -32,20 +32,13 @@ import { DeliveryService } from './delivery.service';
 
 @Controller('Deliveries')
 @ApiTags('Deliveries')
+@ApiOkResponse()
+@ApiBadRequestResponse()
+@ApiUnauthorizedResponse()
+@ApiForbiddenResponse()
 export class DeliveryController {
   constructor(private deliveryService: DeliveryService) {}
-  @ApiOkResponse({
-    description: 'Add delivery address success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Add delivery address failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
+
   @ApiBearerAuth()
   @Post()
   @UseGuards(AuthGuard, RoleGuard)
@@ -57,18 +50,6 @@ export class DeliveryController {
     return this.deliveryService.addDeliveryAddress(username, body);
   }
 
-  @ApiOkResponse({
-    description: 'Update delivery address success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Update delivery address failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthonized',
-  })
-  @ApiBadRequestResponse({
-    description: 'Bad Request',
-  })
   @ApiBearerAuth()
   @Patch()
   @UseGuards(AuthGuard, RoleGuard)
@@ -80,18 +61,6 @@ export class DeliveryController {
     return this.deliveryService.updateDelivery(body, username);
   }
 
-  @ApiOkResponse({
-    description: 'Remove delivery address success',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
-  @ApiBadRequestResponse({
-    description: 'Remove delivery address failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
@@ -106,18 +75,6 @@ export class DeliveryController {
     return this.deliveryService.softDeleteDelivery(params.id, username);
   }
 
-  @ApiOkResponse({
-    description: 'Get delivery address success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Get delivery address failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
   @ApiBearerAuth()
   @Get('own')
   @UseGuards(AuthGuard, RoleGuard)
@@ -126,18 +83,6 @@ export class DeliveryController {
     return this.deliveryService.getOwnDelivery(username);
   }
 
-  @ApiOkResponse({
-    description: 'Get delivery address success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Get delivery address failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',

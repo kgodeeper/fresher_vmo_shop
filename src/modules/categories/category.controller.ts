@@ -36,20 +36,13 @@ import { CategoryService } from './category.service';
 
 @Controller('categories')
 @ApiTags('Categories')
+@ApiOkResponse()
+@ApiBadRequestResponse()
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
-  @ApiOkResponse({
-    description: 'Add category success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Add category failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
+
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -73,18 +66,8 @@ export class CategoryController {
     return this.categoryService.addCategory(body, file);
   }
 
-  @ApiOkResponse({
-    description: 'Update category success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Update category failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiParam({
@@ -116,18 +99,8 @@ export class CategoryController {
     return this.categoryService.updateCategory(params.id, body.name, file);
   }
 
-  @ApiOkResponse({
-    description: 'swap category success',
-  })
-  @ApiBadRequestResponse({
-    description: 'swap category failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
@@ -162,12 +135,6 @@ export class CategoryController {
     return this.categoryService.removeCategory(params.id);
   }
 
-  @ApiOkResponse({
-    description: 'Get category success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Page not found, Out of range',
-  })
   @Get('active/:page')
   async getActiveCategory(
     @Param('page', new ParseIntPipe()) page: number,
@@ -175,18 +142,8 @@ export class CategoryController {
     return this.categoryService.getActiveCategory(page);
   }
 
-  @ApiOkResponse({
-    description: 'Get category success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Get category failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @ApiParam({
     name: 'page',

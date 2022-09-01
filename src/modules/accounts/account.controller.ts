@@ -46,41 +46,25 @@ import { Role } from '../../commons/enum.common';
 
 @Controller('accounts')
 @ApiTags('Accounts')
+@ApiOkResponse()
+@ApiBadRequestResponse()
 export class AccountController {
   constructor(private accountService: AccountService) {}
-  @ApiOkResponse({
-    description: 'Active account success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Active account failure',
-  })
+
   @ApiExtraModels(ActiveAccountDto)
   @Patch('active')
   async activeAccount(@Body() body: ActiveAccountDto): Promise<void> {
     return this.accountService.activeAccount(body);
   }
 
-  @ApiOkResponse({
-    description: 'Send ok',
-  })
-  @ApiBadRequestResponse({
-    description: 'Send error, validate error',
-  })
   @ApiExtraModels(EmailDto)
   @Post('resend-verify-code')
   async resendVerifyCode(@Body() body: EmailDto): Promise<void> {
     return this.accountService.resendVerifyCode(body);
   }
 
-  @ApiOkResponse({
-    description: 'Change username ok',
-  })
-  @ApiBadRequestResponse({
-    description: 'Change username falure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiExtraModels(ChangeUsernameDto)
   @ApiBearerAuth()
   @Patch('username')
@@ -96,15 +80,8 @@ export class AccountController {
     );
   }
 
-  @ApiOkResponse({
-    description: 'Change password success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Change password failure, validate error',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiExtraModels(ChangePasswordDto)
   @ApiBearerAuth()
   @Patch('password')
@@ -116,15 +93,8 @@ export class AccountController {
     return this.accountService.changePassword(body, username);
   }
 
-  @ApiOkResponse({
-    description: 'Change email success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Send verify email success',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthonized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @ApiExtraModels(ChangeEmailRequireDto)
   @Post('change-email-require')
@@ -136,15 +106,8 @@ export class AccountController {
     return this.accountService.changeEmailRequired(body, username);
   }
 
-  @ApiOkResponse({
-    description: 'Change email success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Change email failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiExtraModels(ChangeEmailDto)
   @ApiBearerAuth()
   @Patch('email')
@@ -156,36 +119,18 @@ export class AccountController {
     return this.accountService.changeEmail(body.email, body.code, username);
   }
 
-  @ApiOkResponse({
-    description: 'Send forgot password email success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Send email forgot password fail',
-  })
   @ApiExtraModels(EmailDto)
   @Post('forgot-password-required')
   async requireForgotPassword(@Body() body: EmailDto): Promise<void> {
     return this.accountService.requireForgotPassword(body.email);
   }
 
-  @ApiOkResponse({
-    description: 'Change password success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Change password failure',
-  })
   @ApiExtraModels(ForgotPasswordDto)
   @Patch('forgot-password')
   async forgotPassword(@Body() body: ForgotPasswordDto): Promise<void> {
     return this.accountService.forgotPassword(body);
   }
 
-  @ApiOkResponse({
-    description: 'Update avatar success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Update avatar error',
-  })
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -209,18 +154,8 @@ export class AccountController {
     return this.accountService.updateAvatar(username, file);
   }
 
-  @ApiOkResponse({
-    description: 'Get account success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Get account fail, out of range or empty result',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiParam({
     name: 'page',
     type: 'number',
@@ -235,18 +170,8 @@ export class AccountController {
     return this.accountService.getAllAccounts(page);
   }
 
-  @ApiOkResponse({
-    description: 'Change status success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Change status failure',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @ApiExtraModels(ChangeStatusDto)
   @Patch('status')
@@ -263,15 +188,8 @@ export class AccountController {
     );
   }
 
-  @ApiOkResponse({
-    description: 'Change role success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Change role failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiExtraModels(ChangeRoleDto)
   @ApiBearerAuth()
   @Patch('role')
@@ -284,15 +202,8 @@ export class AccountController {
     return this.accountService.changeRole(username, body.accountID, body.role);
   }
 
-  @ApiOkResponse({
-    description: 'Create account success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Create account failure, invalidate',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @Post('create')
   @ApiExtraModels(CreateAccountDto)
   @ApiBearerAuth()
@@ -302,15 +213,8 @@ export class AccountController {
     return this.accountService.superuserCreateAccount(body.email, body.role);
   }
 
-  @ApiOkResponse({
-    description: 'Synchronized success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Synchronized failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @Get('synch')
   @UseGuards(AuthGuard, RoleGuard)
@@ -319,18 +223,8 @@ export class AccountController {
     return this.accountService.synchronizedCache();
   }
 
-  @ApiOkResponse({
-    description: 'Get information success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Bad request',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @Get('information')
   @UseGuards(AuthGuard)

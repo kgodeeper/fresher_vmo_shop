@@ -19,20 +19,13 @@ import { CustomerService } from './customer.service';
 
 @Controller('customers')
 @ApiTags('Customers')
+@ApiOkResponse()
+@ApiBadRequestResponse()
 export class CustomerController {
   constructor(private customerService: CustomerService) {}
-  @ApiOkResponse({
-    description: 'Update information success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Update information failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
+
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @ApiExtraModels(UpdateCustomerInformationDto)
   @Put('update')
@@ -45,18 +38,8 @@ export class CustomerController {
     return this.customerService.updateInformation(username, body);
   }
 
-  @ApiOkResponse({
-    description: 'Update information success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Update information failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
   @ApiBearerAuth()
   @Get()
   @UseGuards(AuthGuard, RoleGuard)
