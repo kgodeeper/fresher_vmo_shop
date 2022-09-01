@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { Category } from '../categories/category.entity';
 import { Suplier } from '../supliers/suplier.entity';
+import { Photo } from '../photos/photo.entity';
 
 @Entity()
 export class Product extends BaseEntity {
@@ -93,6 +94,14 @@ export class Product extends BaseEntity {
     name: 'fkSuplier',
   })
   fkSuplier: Suplier;
+
+  @OneToMany(
+    () => Photo,
+    (photo) => {
+      photo.path;
+    },
+  )
+  photos: Photo[];
 
   updateInformation(
     name?: string,

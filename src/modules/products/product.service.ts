@@ -10,11 +10,15 @@ import { RedisCacheService } from '../caches/cache.service';
 import { UploadService } from '../uploads/upload.service';
 import { getPublicId } from '../../utils/string.util';
 import { Status } from '../../commons/enum.common';
+import { format } from 'path';
+import { Photo } from '../photos/photo.entity';
+import { PhotoService } from '../photos/photo.service';
 
 @Injectable()
 export class ProductService extends ServiceUtil<Product, Repository<Product>> {
   constructor(
     private dataSource: DataSource,
+    private photoService: PhotoService,
     private categoryService: CategoryService,
     private cacheService: RedisCacheService,
     private uploadService: UploadService,
@@ -26,6 +30,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
   async addProduct(
     barcode: Express.Multer.File[],
     avatar: Express.Multer.File[],
+    photos: Express.Multer.File[],
     productInfo: AddProductDto,
   ): Promise<void> {
     if (
@@ -56,6 +61,21 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     const existSuplier = await this.suplierService.checkSuplier(suplier);
     // check category is exist ?
     const existCategory = await this.categoryService.checkCategory(category);
+    // check price
+    if (Number(exportPrice) <= Number(importPrice)) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Import price can not greater than export price',
+      );
+    }
+    // check weight
+    if (Number(weight) <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Weight can not be lower or equal 0',
+      );
+    }
+    // upload
     const barcodeUploaded = await this.uploadService.uploadToCloudinary(
       barcode[0],
       'products/barcode',
@@ -64,21 +84,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       avatar[0],
       `products/${existCategory.name}`,
     );
-    /**
-     * import price must < export price
-     */
-    if (Number(exportPrice) <= Number(importPrice)) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Import price can not greater than export price',
-      );
-    }
-    if (Number(weight) <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Weight can not be lower or equal 0',
-      );
-    }
+    // save product to get product id
     const product = new Product(
       existCategory,
       existSuplier,
@@ -91,6 +97,15 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       description,
     );
     await this.repository.save(product);
+    // upload photos and save photo into db
+    if (photos) {
+      const savePhotos = photos.reduce((savePhotos, photo, index) => {
+        savePhotos.push(this.photoService.insertProductPhoto(photo, product));
+        return savePhotos;
+      }, []);
+      const saved = await Promise.all(savePhotos);
+      product.photos = saved;
+    }
     /**
      * cache quantiy
      */

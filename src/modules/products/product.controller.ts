@@ -3,8 +3,6 @@ import {
   Controller,
   Delete,
   Param,
-  ParseIntPipe,
-  Patch,
   Post,
   Put,
   UploadedFiles,
@@ -70,24 +68,37 @@ export class ProductController {
           type: 'string',
           format: 'binary',
         },
+        photos: {
+          type: 'array',
+          items: {
+            type: 'string',
+            format: 'binary',
+          },
+        },
       },
     },
   })
   @ApiBearerAuth()
   @Post()
-  @UseGuards(AuthGuard, RoleGuard)
+  //@UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'avatar', maxCount: 1 },
       { name: 'barcode', maxCount: 1 },
+      { name: 'photos', maxCount: 5 },
     ]),
   )
   async addProduct(
     @Body() body: AddProductDto,
     @UploadedFiles() files,
   ): Promise<void> {
-    return this.productService.addProduct(files.barcode, files.avatar, body);
+    return this.productService.addProduct(
+      files.barcode,
+      files.avatar,
+      files.photos,
+      body,
+    );
   }
 
   @ApiBearerAuth()
