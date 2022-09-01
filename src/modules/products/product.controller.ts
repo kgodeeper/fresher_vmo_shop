@@ -1,6 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
+  Param,
+  ParseIntPipe,
   Patch,
   Post,
   Put,
@@ -16,9 +19,11 @@ import {
   ApiConsumes,
   ApiForbiddenResponse,
   ApiOkResponse,
+  ApiParam,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
@@ -119,5 +124,18 @@ export class ProductController {
     @Body() body: UpdateProductDto,
   ): Promise<void> {
     return this.productService.updateProduct(body, files.barcode, files.avatar);
+  }
+
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  @ApiBearerAuth()
+  @ApiParam({
+    name: 'id',
+  })
+  @Delete(':id')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.STAFF, Role.SUPERUSER)
+  async removeProduct(@Param() param: UuidDto): Promise<void> {
+    return this.productService.removeProduct(param.id);
   }
 }

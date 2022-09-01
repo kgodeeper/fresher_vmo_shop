@@ -9,6 +9,7 @@ import { CategoryService } from '../categories/category.service';
 import { RedisCacheService } from '../caches/cache.service';
 import { UploadService } from '../uploads/upload.service';
 import { getPublicId } from '../../utils/string.util';
+import { Status } from '../../commons/enum.common';
 
 @Injectable()
 export class ProductService extends ServiceUtil<Product, Repository<Product>> {
@@ -210,6 +211,33 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       existCategory,
     );
     await existProduct.save();
+  }
+
+  async removeProduct(id: string): Promise<void> {
+    const existProduct = await this.getExistProduct(id);
+    existProduct.status = Status.INACTIVE;
+    await existProduct.save();
+    /**
+     * recache active product quantity
+     */
+    await this.cacheService.updateQuantityValue('shop:active:products', -1);
+  }
+
+  async getExistProduct(id: string): Promise<Product> {
+    const existProduct = await this.findOneByCondition({ pkProduct: id });
+    if (!existProduct) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Product with this id is not exist',
+      );
+    }
+    if (existProduct.status !== Status.ACTIVE) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Product with this id was ${existProduct.status}`,
+      );
+    }
+    return existProduct;
   }
 
   async checkProductExist(
