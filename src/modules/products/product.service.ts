@@ -10,9 +10,10 @@ import { RedisCacheService } from '../caches/cache.service';
 import { UploadService } from '../uploads/upload.service';
 import { getPublicId } from '../../utils/string.util';
 import { Status } from '../../commons/enum.common';
-import { format } from 'path';
-import { Photo } from '../photos/photo.entity';
 import { PhotoService } from '../photos/photo.service';
+import { IPaginate } from '../../utils/interface.util';
+import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
+import { getTotalPages } from '../../utils/number.util';
 
 @Injectable()
 export class ProductService extends ServiceUtil<Product, Repository<Product>> {
@@ -103,8 +104,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
         savePhotos.push(this.photoService.insertProductPhoto(photo, product));
         return savePhotos;
       }, []);
-      const saved = await Promise.all(savePhotos);
-      product.photos = saved;
+      await Promise.all(savePhotos);
     }
     /**
      * cache quantiy
@@ -228,6 +228,25 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     await existProduct.save();
   }
 
+  async getAllProducts(page: number): Promise<IPaginate<Product>> {
+    if (page <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number not found',
+      );
+    }
+    const totalElements = Number(
+      await this.cacheService.get('shop:all:products'),
+    );
+    const elements = await this.getProducts(page);
+    return {
+      page,
+      totalPages: getTotalPages(totalElements),
+      totalElements,
+      elements,
+    };
+  }
+
   async removeProduct(id: string): Promise<void> {
     const existProduct = await this.getExistProduct(id);
     existProduct.status = Status.INACTIVE;
@@ -273,5 +292,16 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       .getOne();
     if (existProduct) return true;
     return false;
+  }
+
+  async getProducts(page: number) {
+    return await this.repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.fkCategory', 'categoty')
+      .leftJoinAndSelect('product.fkSuplier', 'suplier')
+      .leftJoinAndSelect('product.photos', 'photos')
+      .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
+      .limit(MAX_ELEMENTS_OF_PAGE)
+      .getMany();
   }
 }

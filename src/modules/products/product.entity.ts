@@ -95,12 +95,7 @@ export class Product extends BaseEntity {
   })
   fkSuplier: Suplier;
 
-  @OneToMany(
-    () => Photo,
-    (photo) => {
-      photo.path;
-    },
-  )
+  @OneToMany(() => Photo, (photo) => photo.fkProduct)
   photos: Photo[];
 
   updateInformation(

@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   UploadedFiles,
@@ -21,12 +23,14 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { IPaginate } from 'src/utils/interface.util';
 import { UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
 import { RoleGuard } from '../../guards/role.guard';
 import { AddProductDto, UpdateProductDto } from './product.dto';
+import { Product } from './product.entity';
 import { ProductService } from './product.service';
 
 @Controller('products')
@@ -80,7 +84,7 @@ export class ProductController {
   })
   @ApiBearerAuth()
   @Post()
-  //@UseGuards(AuthGuard, RoleGuard)
+  @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
   @UseInterceptors(
     FileFieldsInterceptor([
@@ -148,5 +152,17 @@ export class ProductController {
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
   async removeProduct(@Param() param: UuidDto): Promise<void> {
     return this.productService.removeProduct(param.id);
+  }
+
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  @ApiBearerAuth()
+  @Get('all/:page')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.STAFF, Role.SUPERUSER)
+  async getAllProducts(
+    @Param('page', new ParseIntPipe()) page: number,
+  ): Promise<IPaginate<Product>> {
+    return this.productService.getAllProducts(page);
   }
 }
