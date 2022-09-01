@@ -239,6 +239,31 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       await this.cacheService.get('shop:all:products'),
     );
     const elements = await this.getProducts(page);
+    if (elements.length === 0) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, `Out of range`);
+    }
+    return {
+      page,
+      totalPages: getTotalPages(totalElements),
+      totalElements,
+      elements,
+    };
+  }
+
+  async getAllActiveProducts(page: number): Promise<IPaginate<Product>> {
+    if (page <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number not found',
+      );
+    }
+    const totalElements = Number(
+      await this.cacheService.get('shop:active:products'),
+    );
+    const elements = await this.getActiveProducts(page);
+    if (elements.length === 0) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, `Out of range`);
+    }
     return {
       page,
       totalPages: getTotalPages(totalElements),
@@ -300,6 +325,18 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       .leftJoinAndSelect('product.fkCategory', 'categoty')
       .leftJoinAndSelect('product.fkSuplier', 'suplier')
       .leftJoinAndSelect('product.photos', 'photos')
+      .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
+      .limit(MAX_ELEMENTS_OF_PAGE)
+      .getMany();
+  }
+
+  async getActiveProducts(page: number) {
+    return await this.repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.fkCategory', 'categoty')
+      .leftJoinAndSelect('product.fkSuplier', 'suplier')
+      .leftJoinAndSelect('product.photos', 'photos')
+      .where('"product"."status" = :status', { status: Status.ACTIVE })
       .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
       .limit(MAX_ELEMENTS_OF_PAGE)
       .getMany();

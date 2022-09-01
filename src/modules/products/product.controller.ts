@@ -165,4 +165,11 @@ export class ProductController {
   ): Promise<IPaginate<Product>> {
     return this.productService.getAllProducts(page);
   }
+
+  @Get('active/:page')
+  async getAllActiveProducts(
+    @Param('page', new ParseIntPipe()) page: number,
+  ): Promise<IPaginate<Product>> {
+    return this.productService.getAllActiveProducts(page);
+  }
 }
