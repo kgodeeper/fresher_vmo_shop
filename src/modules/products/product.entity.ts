@@ -92,4 +92,26 @@ export class Product extends BaseEntity {
     name: 'fkSuplier',
   })
   fkSuplier: Suplier;
+
+  updateInformation(
+    name?: string,
+    barcode?: string,
+    avatar?: string,
+    importPrice?: string,
+    exportPrice?: string,
+    weight?: string,
+    description?: string,
+    suplier?: Suplier,
+    category?: Category,
+  ) {
+    this.name = name;
+    this.barcode = barcode;
+    this.avatar = avatar;
+    this.importPrice = Number(importPrice);
+    this.exportPrice = Number(exportPrice);
+    this.weight = Number(weight);
+    this.description = description;
+    this.fkSuplier = suplier;
+    this.fkCategory = category;
+  }
 }

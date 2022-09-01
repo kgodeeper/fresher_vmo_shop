@@ -36,3 +36,37 @@ export class AddProductDto {
   @IsNumberString()
   weight: string;
 }
+
+export class UpdateProductDto {
+  @IsNotEmpty()
+  @Matches(UUID_REGEX)
+  id: string;
+
+  @Matches(UUID_REGEX)
+  @IsOptional()
+  category: string;
+
+  @IsOptional()
+  @Matches(UUID_REGEX)
+  suplier: string;
+
+  @IsOptional()
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsNumberString()
+  importPrice: string;
+
+  @IsOptional()
+  @IsNumberString()
+  exportPrice: string;
+
+  @IsOptional()
+  @IsString()
+  description: string;
+
+  @IsOptional()
+  @IsNumberString()
+  weight: string;
+}
