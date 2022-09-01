@@ -14,6 +14,7 @@ import { PhotoService } from '../photos/photo.service';
 import { IPaginate } from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
+import { last } from 'rxjs';
 
 @Injectable()
 export class ProductService extends ServiceUtil<Product, Repository<Product>> {
@@ -272,6 +273,63 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     };
   }
 
+  async searchProduct(key: string, page: number): Promise<IPaginate<Product>> {
+    if (page <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Page number is not valid`,
+      );
+    }
+    const searchElements = await this.searchActiveProduct(key);
+    const totalElements = searchElements.length;
+    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= totalElements) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, `Out of range`);
+    }
+    const lastIndex = page * MAX_ELEMENTS_OF_PAGE + 1;
+    const elements = searchElements.slice(
+      (page - 1) * MAX_ELEMENTS_OF_PAGE,
+      lastIndex,
+    );
+    return {
+      page,
+      totalPages: getTotalPages(totalElements),
+      totalElements,
+      elements,
+    };
+  }
+
+  async filterProduct(
+    category: string,
+    suplier: string,
+    page: number,
+  ): Promise<IPaginate<Product>> {
+    if (page <= 0) {
+    }
+    const filterElements = await this.findAllWithJoin(
+      { fkCategory: true, fkSuplier: true, photos: true },
+      {
+        fkCategory: { pkCategory: category },
+        fkSuplier: { pkSuplier: suplier },
+        status: Status.ACTIVE,
+      },
+    );
+    const totalElements = filterElements.length;
+    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= totalElements) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, `Out of range`);
+    }
+    const lastIndex = page * MAX_ELEMENTS_OF_PAGE + 1;
+    const elements = filterElements.slice(
+      (page - 1) * MAX_ELEMENTS_OF_PAGE,
+      lastIndex,
+    );
+    return {
+      page,
+      totalPages: getTotalPages(totalElements),
+      totalElements,
+      elements,
+    };
+  }
+
   async removeProduct(id: string): Promise<void> {
     const existProduct = await this.getExistProduct(id);
     existProduct.status = Status.INACTIVE;
@@ -319,7 +377,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     return false;
   }
 
-  async getProducts(page: number) {
+  async getProducts(page: number): Promise<Product[]> {
     return await this.repository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.fkCategory', 'categoty')
@@ -330,7 +388,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       .getMany();
   }
 
-  async getActiveProducts(page: number) {
+  async getActiveProducts(page: number): Promise<Product[]> {
     return await this.repository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.fkCategory', 'categoty')
@@ -339,6 +397,23 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       .where('"product"."status" = :status', { status: Status.ACTIVE })
       .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
       .limit(MAX_ELEMENTS_OF_PAGE)
+      .getMany();
+  }
+
+  async searchActiveProduct(key: string): Promise<Product[]> {
+    key = `%${key}%`;
+    return await this.repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.fkCategory', 'categoty')
+      .leftJoinAndSelect('product.fkSuplier', 'suplier')
+      .leftJoinAndSelect('product.photos', 'photos')
+      .where(
+        'LOWER("product"."name") LIKE LOWER(:key) AND "product"."status" = :status',
+        {
+          key,
+          status: Status.ACTIVE,
+        },
+      )
       .getMany();
   }
 }

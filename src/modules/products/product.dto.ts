@@ -70,3 +70,17 @@ export class UpdateProductDto {
   @IsNumberString()
   weight: string;
 }
+
+export class FilterProductDto {
+  @IsNumberString()
+  @IsNotEmpty()
+  page: number;
+
+  @Matches(UUID_REGEX)
+  @IsOptional()
+  category: string;
+
+  @Matches(UUID_REGEX)
+  @IsOptional()
+  suplier: string;
+}

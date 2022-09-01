@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -20,16 +21,22 @@ import {
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiParam,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { IPaginate } from 'src/utils/interface.util';
+import { FindRelationsNotFoundError } from 'typeorm';
 import { UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
 import { RoleGuard } from '../../guards/role.guard';
-import { AddProductDto, UpdateProductDto } from './product.dto';
+import {
+  AddProductDto,
+  FilterProductDto,
+  UpdateProductDto,
+} from './product.dto';
 import { Product } from './product.entity';
 import { ProductService } from './product.service';
 
@@ -171,5 +178,31 @@ export class ProductController {
     @Param('page', new ParseIntPipe()) page: number,
   ): Promise<IPaginate<Product>> {
     return this.productService.getAllActiveProducts(page);
+  }
+
+  @ApiQuery({
+    name: 'key',
+  })
+  @Get('search/:page')
+  async searchProduct(
+    @Query() query: { key: string },
+    @Param('page', new ParseIntPipe()) page: number,
+  ): Promise<IPaginate<Product>> {
+    return this.productService.searchProduct(query.key, page);
+  }
+
+  @Get('filter/:page')
+  @ApiParam({ name: 'page' })
+  @ApiQuery({ name: 'suplier', required: false })
+  @ApiQuery({ name: 'category', required: false })
+  async filterProduct(
+    @Param('page', new ParseIntPipe()) page: number,
+    @Query() query,
+  ): Promise<IPaginate<Product>> {
+    return this.productService.filterProduct(
+      query.category,
+      query.suplier,
+      page,
+    );
   }
 }
