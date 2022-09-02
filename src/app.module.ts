@@ -12,6 +12,9 @@ import { CustomerModule } from './modules/customers/customer.module';
 import { DeliveryModule } from './modules/deliveries/delivery.module';
 import { CategoryModule } from './modules/categories/category.module';
 import { ProductModule } from './modules/products/product.module';
+import { PhotoModule } from './modules/photos/photo.module';
+import { ProductModelModule } from './modules/models/model.module';
+import { SaleProductModule } from './modules/sale-products/sale-product.module';
 
 @Module({
   imports: [
@@ -34,6 +37,9 @@ import { ProductModule } from './modules/products/product.module';
     DeliveryModule,
     CategoryModule,
     ProductModule,
+    PhotoModule,
+    ProductModelModule,
+    SaleProductModule,
   ],
   controllers: [],
   providers: [],
