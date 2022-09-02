@@ -380,9 +380,6 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
   async getProducts(page: number): Promise<Product[]> {
     return await this.repository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.fkCategory', 'categoty')
-      .leftJoinAndSelect('product.fkSuplier', 'suplier')
-      .leftJoinAndSelect('product.photos', 'photos')
       .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
       .limit(MAX_ELEMENTS_OF_PAGE)
       .getMany();
@@ -391,9 +388,6 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
   async getActiveProducts(page: number): Promise<Product[]> {
     return await this.repository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.fkCategory', 'categoty')
-      .leftJoinAndSelect('product.fkSuplier', 'suplier')
-      .leftJoinAndSelect('product.photos', 'photos')
       .where('"product"."status" = :status', { status: Status.ACTIVE })
       .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
       .limit(MAX_ELEMENTS_OF_PAGE)
@@ -404,9 +398,6 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     key = `%${key}%`;
     return await this.repository
       .createQueryBuilder('product')
-      .leftJoinAndSelect('product.fkCategory', 'categoty')
-      .leftJoinAndSelect('product.fkSuplier', 'suplier')
-      .leftJoinAndSelect('product.photos', 'photos')
       .where(
         'LOWER("product"."name") LIKE LOWER(:key) AND "product"."status" = :status',
         {
@@ -415,5 +406,17 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
         },
       )
       .getMany();
+  }
+
+  async getDetailProduct(id: string): Promise<Product> {
+    await this.getExistProduct(id);
+    return this.repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.fkCategory', 'category')
+      .leftJoinAndSelect('product.fkSuplier', 'suplier')
+      .leftJoinAndSelect('product.photos', 'photos')
+      .leftJoinAndSelect('product.models', 'models')
+      .where('product.pkProduct =  :product', { product: id })
+      .getOne();
   }
 }

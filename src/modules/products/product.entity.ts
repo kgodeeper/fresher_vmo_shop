@@ -13,6 +13,7 @@ import {
 import { Category } from '../categories/category.entity';
 import { Suplier } from '../supliers/suplier.entity';
 import { Photo } from '../photos/photo.entity';
+import { ProductModel } from '../models/model.entity';
 
 @Entity()
 export class Product extends BaseEntity {
@@ -97,6 +98,9 @@ export class Product extends BaseEntity {
 
   @OneToMany(() => Photo, (photo) => photo.fkProduct)
   photos: Photo[];
+
+  @OneToMany(() => ProductModel, (model) => model.fkProduct)
+  models: ProductModel[];
 
   updateInformation(
     name?: string,

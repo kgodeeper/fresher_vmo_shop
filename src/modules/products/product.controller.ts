@@ -205,4 +205,9 @@ export class ProductController {
       page,
     );
   }
+
+  @Get('details/:id')
+  async getDetailProduct(@Param() params: UuidDto): Promise<Product> {
+    return this.productService.getDetailProduct(params.id);
+  }
 }
