@@ -2,10 +2,12 @@ import { Status } from '../../commons/enum.common';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Product } from '../products/product.entity';
 
@@ -57,6 +59,16 @@ export class ProductModel extends BaseEntity {
     default: Status.ACTIVE,
   })
   status: Status;
+
+  @CreateDateColumn({
+    default: `now()`,
+  })
+  createAt: string;
+
+  @UpdateDateColumn({
+    default: `now()`,
+  })
+  updateAt: string;
 
   @ManyToOne(() => Product, (product) => product.models)
   @JoinColumn({

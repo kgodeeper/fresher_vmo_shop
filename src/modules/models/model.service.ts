@@ -53,4 +53,16 @@ export class ProductModelService extends ServiceUtil<
      */
     await this.repository.save(model);
   }
+
+  async getAllQuantityInStock(id: string): Promise<number> {
+    const result = await this.repository
+      .createQueryBuilder('model')
+      .leftJoinAndSelect('model.fkProduct', 'product')
+      .where('model."fkProduct" = :product', {
+        product: id,
+      })
+      .select('SUM(model."quantityInStock")')
+      .getRawOne();
+    return result.sum;
+  }
 }
