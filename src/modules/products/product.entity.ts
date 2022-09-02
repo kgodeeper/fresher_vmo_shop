@@ -14,6 +14,8 @@ import { Category } from '../categories/category.entity';
 import { Suplier } from '../supliers/suplier.entity';
 import { Photo } from '../photos/photo.entity';
 import { ProductModel } from '../models/model.entity';
+import { Sale } from '../sales/sale.entity';
+import { SaleProduct } from '../sale-products/sale-product.entity';
 
 @Entity()
 export class Product extends BaseEntity {
@@ -101,6 +103,9 @@ export class Product extends BaseEntity {
 
   @OneToMany(() => ProductModel, (model) => model.fkProduct)
   models: ProductModel[];
+
+  @OneToMany(() => SaleProduct, (saleProduct) => saleProduct.fkProduct)
+  sales: SaleProduct[];
 
   updateInformation(
     name?: string,

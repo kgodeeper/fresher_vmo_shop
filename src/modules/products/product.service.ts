@@ -410,13 +410,19 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
 
   async getDetailProduct(id: string): Promise<Product> {
     await this.getExistProduct(id);
-    return this.repository
+    const product = await this.repository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.fkCategory', 'category')
       .leftJoinAndSelect('product.fkSuplier', 'suplier')
       .leftJoinAndSelect('product.photos', 'photos')
       .leftJoinAndSelect('product.models', 'models')
+      .leftJoinAndSelect('product.sales', 'sales')
+      .leftJoinAndSelect('sales.fkSale', 'flashSales')
       .where('product.pkProduct =  :product', { product: id })
       .getOne();
+    product.sales = product.sales.filter((item) => {
+      return new Date(item.fkSale.end) > new Date();
+    });
+    return product;
   }
 }
