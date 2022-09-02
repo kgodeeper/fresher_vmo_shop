@@ -22,4 +22,9 @@ export class AddSaleProductDto {
   @IsNotEmpty()
   @IsNumberString()
   total: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumberString()
+  discount: string;
 }

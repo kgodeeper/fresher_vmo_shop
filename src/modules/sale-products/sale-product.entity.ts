@@ -13,12 +13,13 @@ import { Product } from '../products/product.entity';
 
 @Entity()
 export class SaleProduct extends BaseEntity {
-  constructor(sale: Sale, product: Product, total: number) {
+  constructor(sale: Sale, product: Product, total: number, discount: number) {
     super();
     this.fkSale = sale;
     this.fkProduct = product;
     this.totalQuantity = total;
     this.remainQuantity = total;
+    this.discount = discount;
   }
   @PrimaryGeneratedColumn('uuid')
   pkFlashSaleProduct: string;
@@ -29,7 +30,7 @@ export class SaleProduct extends BaseEntity {
   })
   fkSale: Sale;
 
-  @ManyToOne(() => Product)
+  @ManyToOne(() => Product, (product) => product.sales)
   @JoinColumn({
     name: 'fkProduct',
   })
@@ -40,6 +41,11 @@ export class SaleProduct extends BaseEntity {
 
   @Column()
   remainQuantity: number;
+
+  @Column({
+    default: 0,
+  })
+  discount: number;
 
   @CreateDateColumn({
     default: 'now()',

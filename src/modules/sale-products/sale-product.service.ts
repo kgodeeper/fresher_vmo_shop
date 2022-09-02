@@ -23,7 +23,7 @@ export class SaleProductService extends ServiceUtil<
   }
 
   async addSaleProduct(saleProductInfo: AddSaleProductDto): Promise<void> {
-    const { product, sale, total } = saleProductInfo;
+    const { product, sale, total, discount } = saleProductInfo;
     /**
      * check product
      */
@@ -63,7 +63,12 @@ export class SaleProductService extends ServiceUtil<
         'Product already exist in this sale',
       );
     }
-    const saleProduct = new SaleProduct(existSale, existProduct, Number(total));
+    const saleProduct = new SaleProduct(
+      existSale,
+      existProduct,
+      Number(total),
+      Number(discount),
+    );
     await this.repository.save(saleProduct);
   }
 }
