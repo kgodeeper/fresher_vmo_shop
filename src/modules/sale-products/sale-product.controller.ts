@@ -1,6 +1,7 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiExtraModels,
   ApiOkResponse,
   ApiTags,
@@ -19,6 +20,7 @@ import { SaleProductService } from './sale-product.service';
 export class SaleProductController {
   constructor(private saleProductService: SaleProductService) {}
   @ApiExtraModels(AddSaleProductDto)
+  @ApiBearerAuth()
   @Post()
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.STAFF, Role.SUPERUSER)

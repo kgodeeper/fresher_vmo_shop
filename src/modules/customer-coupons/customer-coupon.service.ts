@@ -76,4 +76,18 @@ export class CustomerCouponService extends ServiceUtil<
       },
     );
   }
+
+  async getCustomerCouponById(id: string): Promise<CustomerCoupon> {
+    const existCoupon = await this.findOneAndJoin(
+      { fkCoupon: true },
+      { pkCustomerCoupon: id },
+    );
+    if (!existCoupon) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Your coupon is not exist',
+      );
+    }
+    return existCoupon;
+  }
 }

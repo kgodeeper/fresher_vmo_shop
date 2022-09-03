@@ -118,7 +118,7 @@ export class CouponService extends ServiceUtil<Coupon, Repository<Coupon>> {
   async getCouponByCode(code: string): Promise<Coupon> {
     return this.repository
       .createQueryBuilder()
-      .where('"end" > now() AND code = :code OR "pkCoupon" = :code', { code })
+      .where('"end" > now() AND code = :code', { code })
       .getOne();
   }
 }

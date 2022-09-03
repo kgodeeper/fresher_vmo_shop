@@ -204,15 +204,40 @@ export class DeliveryService extends ServiceUtil<
     return deliveries;
   }
 
-  async getDelivery(id: string, customer: string): Promise<Delivery> {
+  async getDelivery(id: string): Promise<Delivery> {
     const existDelivery = await this.findOneAndJoin(
       { fkCustomer: true },
-      { pkAddress: id, fkCustomer: { pkCustomer: customer } },
+      { pkAddress: id },
     );
     if (!existDelivery) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
         `Delivery address with this id is not exist`,
+      );
+    }
+    return existDelivery;
+  }
+
+  async getCustomerDelivery(id: string, customer: string): Promise<Delivery> {
+    const existDelivery = await this.findOneAndJoin(
+      {
+        fkCustomer: true,
+      },
+      {
+        pkAddress: id,
+        fkCustomer: { pkCustomer: customer },
+      },
+    );
+    if (!existDelivery) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `You dont have this delivery`,
+      );
+    }
+    if (existDelivery.status !== Status.ACTIVE) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Your delivery address was remove',
       );
     }
     return existDelivery;

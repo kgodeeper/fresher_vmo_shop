@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CouponModule } from '../coupons/coupon.module';
+import { CustomerCouponModule } from '../customer-coupons/customer-coupon.module';
 import { CustomerModule } from '../customers/customer.module';
 import { DeliveryModule } from '../deliveries/delivery.module';
 import { ProductModelModule } from '../models/model.module';
@@ -13,6 +14,7 @@ import { OrderService } from './order.service';
     CustomerModule,
     CouponModule,
     DeliveryModule,
+    CustomerCouponModule,
     ProductModule,
   ],
   exports: [OrderService],

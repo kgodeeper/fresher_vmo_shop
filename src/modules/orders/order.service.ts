@@ -5,20 +5,20 @@ import { Order } from './order.entity';
 import { ProductModelService } from '../models/model.service';
 import { OrderProduct } from '../order-products/order-product.entity';
 import { CustomerService } from '../customers/customer.service';
-import { CouponService } from '../coupons/coupon.service';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { DeliveryService } from '../deliveries/delivery.service';
 import { UUID_REGEX } from '../../utils/regex.util';
 import { ProductModel } from '../models/model.entity';
 import { ProductService } from '../products/product.service';
-import { Coupon } from '../coupons/coupon.entity';
+import { CustomerCouponService } from '../customer-coupons/customer-coupon.service';
+import { Status } from '../../commons/enum.common';
 
 @Injectable()
 export class OrderService extends ServiceUtil<Order, Repository<Order>> {
   constructor(
     private dataSource: DataSource,
     private productService: ProductService,
-    private couponService: CouponService,
+    private customerCouponService: CustomerCouponService,
     private customerService: CustomerService,
     private deliveryService: DeliveryService,
     private productModelService: ProductModelService,
@@ -66,15 +66,31 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
       models.push(existModel);
     }
     /**
-     * check coupon
+     * check customer coupon id
      */
-    let existCoupon: Coupon;
+    let existCustomerCoupon;
     if (coupon) {
-      existCoupon = await this.couponService.getCouponByCode(coupon);
-      if (!existCoupon) {
+      existCustomerCoupon =
+        await this.customerCouponService.getCustomerCouponById(coupon);
+      if (existCustomerCoupon.used) {
         throw new AppHttpException(
           HttpStatus.BAD_REQUEST,
-          'Coupon is not exist or was expires',
+          'Your coupon was used',
+        );
+      }
+      if (existCustomerCoupon.fkCoupon.status !== Status.ACTIVE) {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          'Your coupon was remove',
+        );
+      }
+      if (
+        new Date(existCustomerCoupon.fkCoupon.end) < new Date() ||
+        new Date(existCustomerCoupon.fkCoupon.begin) > new Date()
+      ) {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          'Can not used this coupon',
         );
       }
     }
@@ -93,7 +109,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     /**
      * check account's delivery
      */
-    const existDelivery = await this.deliveryService.getDelivery(
+    const existDelivery = await this.deliveryService.getCustomerDelivery(
       delivery,
       existCustomer.pkCustomer,
     );
@@ -107,6 +123,13 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
       const order = new Order();
       order.fkCustomer = existCustomer;
       order.fkDelivery = existDelivery;
+      order.fkCustomerCoupon = existCustomerCoupon;
+      // use customer coupon
+      if (existCustomerCoupon) {
+        existCustomerCoupon.used = true;
+        await entityManager.save(existCustomerCoupon);
+      }
+      const existCoupon = existCustomerCoupon?.fkCoupon;
       await entityManager.save(order);
       /**
        * add product to order product
