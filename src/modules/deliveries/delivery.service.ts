@@ -204,10 +204,10 @@ export class DeliveryService extends ServiceUtil<
     return deliveries;
   }
 
-  async getDelivery(id: string): Promise<Delivery> {
+  async getDelivery(id: string, customer: string): Promise<Delivery> {
     const existDelivery = await this.findOneAndJoin(
       { fkCustomer: true },
-      { pkAddress: id },
+      { pkAddress: id, fkCustomer: { pkCustomer: customer } },
     );
     if (!existDelivery) {
       throw new AppHttpException(

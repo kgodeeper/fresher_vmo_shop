@@ -34,7 +34,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
   ): Promise<void> {
     /**
      * reduce element of product array
-     * increase quantity if two elements has same product's id
+     * increase quantity if two elements has same product model's id
      */
     const reduceProducts = orderProducts.reduce(
       (
@@ -90,7 +90,13 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
         'Delivery id is not correct',
       );
     }
-    const existDelivery = await this.deliveryService.getDelivery(delivery);
+    /**
+     * check account's delivery
+     */
+    const existDelivery = await this.deliveryService.getDelivery(
+      delivery,
+      existCustomer.pkCustomer,
+    );
     /**
      * transaction for add order in db
      */
@@ -133,7 +139,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
             orderProduct.priceAfterSale =
               Number(product.exportPrice) - Number(flashSale.discount);
             /**
-             * reduce flashsale quantity
+             * reduce flashsale remain quantity
              */
             flashSale.remainQuantity =
               flashSale.remainQuantity - reduceProducts[i].quantity;
