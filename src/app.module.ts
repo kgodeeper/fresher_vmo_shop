@@ -15,6 +15,9 @@ import { ProductModule } from './modules/products/product.module';
 import { PhotoModule } from './modules/photos/photo.module';
 import { ProductModelModule } from './modules/models/model.module';
 import { SaleProductModule } from './modules/sale-products/sale-product.module';
+import { CouponModule } from './modules/coupons/coupon.module';
+import { CustomerCouponModule } from './modules/customer-coupons/customer-coupon.module';
+import { OrderModule } from './modules/orders/order.module';
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { SaleProductModule } from './modules/sale-products/sale-product.module';
     PhotoModule,
     ProductModelModule,
     SaleProductModule,
+    CouponModule,
+    CustomerCouponModule,
+    OrderModule,
   ],
   controllers: [],
   providers: [],

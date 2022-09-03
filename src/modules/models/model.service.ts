@@ -65,4 +65,29 @@ export class ProductModelService extends ServiceUtil<
       .getRawOne();
     return result.sum;
   }
+
+  async checkModel(modelInfo: {
+    modelId: string;
+    quantity: number;
+  }): Promise<ProductModel> {
+    const existModel = await this.findOneAndJoin(
+      { fkProduct: true },
+      {
+        pkProductModel: modelInfo.modelId,
+      },
+    );
+    if (!existModel) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Product model with id ${modelInfo.modelId} is not exist`,
+      );
+    }
+    if (existModel.quantityInStock < modelInfo.quantity) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `This model is out of stock`,
+      );
+    }
+    return existModel;
+  }
 }

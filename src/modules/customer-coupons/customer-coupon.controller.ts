@@ -5,7 +5,7 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { UserBound } from '../../decorators/bind-user.decorator';
@@ -14,6 +14,7 @@ import { RoleGuard } from '../../guards/role.guard';
 import { CustomerCouponService } from './customer-coupon.service';
 
 @Controller('customer-coupons')
+@ApiTags('Customer coupon')
 export class CustomerCouponController {
   constructor(private customerCouponService: CustomerCouponService) {}
 

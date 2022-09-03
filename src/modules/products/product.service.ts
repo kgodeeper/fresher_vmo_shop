@@ -15,6 +15,8 @@ import { IPaginate } from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
 import { last } from 'rxjs';
+import { Sale } from '../sales/sale.entity';
+import { SaleProduct } from '../sale-products/sale-product.entity';
 
 @Injectable()
 export class ProductService extends ServiceUtil<Product, Repository<Product>> {
@@ -424,5 +426,24 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       return new Date(item.fkSale.end) > new Date();
     });
     return product;
+  }
+
+  async getFlashSaleProduct(id: string): Promise<SaleProduct> {
+    const product = await this.repository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.sales', 'sales')
+      .leftJoinAndSelect('sales.fkSale', 'flashSales')
+      .where('product.pkProduct =  :product', { product: id })
+      .getOne();
+    product.sales = product.sales.filter((item) => {
+      return (
+        new Date(item.fkSale.end) > new Date() &&
+        new Date(item.fkSale.begin) < new Date()
+      );
+    });
+    if (product.sales.length <= 0) {
+      return null;
+    }
+    return product.sales[0];
   }
 }

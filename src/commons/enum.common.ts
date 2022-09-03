@@ -20,3 +20,14 @@ export enum Gender {
   FEMALE = 'female',
   ORTHER = 'orther',
 }
+
+export enum PaymentStatus {
+  PAID = 'paid',
+  PENDING = 'pending',
+}
+
+export enum ShipmentStatus {
+  PREPAIRING = 'prepairing',
+  TRANSPORTING = 'transporting',
+  COMPLETE = 'complete',
+}

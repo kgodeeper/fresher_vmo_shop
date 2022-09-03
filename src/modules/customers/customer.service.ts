@@ -79,4 +79,23 @@ export class CustomerService extends ServiceUtil<
     delete customer.fkAccount.pkAccount;
     return customer;
   }
+
+  async getCustomerByUsername(username: string): Promise<Customer> {
+    const existAccount = await this.accountService.checkAccountByUsername(
+      true,
+      true,
+      username,
+    );
+    const existCustomer = await this.findOneAndJoin(
+      { fkAccount: true },
+      { fkAccount: { pkAccount: existAccount.pkAccount } },
+    );
+    if (!existCustomer) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Customer is not exist',
+      );
+    }
+    return existCustomer;
+  }
 }

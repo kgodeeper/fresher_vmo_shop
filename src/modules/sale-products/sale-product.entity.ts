@@ -22,7 +22,7 @@ export class SaleProduct extends BaseEntity {
     this.discount = discount;
   }
   @PrimaryGeneratedColumn('uuid')
-  pkFlashSaleProduct: string;
+  pkSaleProduct: string;
 
   @ManyToOne(() => Sale)
   @JoinColumn({
