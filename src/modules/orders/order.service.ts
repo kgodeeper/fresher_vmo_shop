@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable, UseFilters } from '@nestjs/common';
 import { ServiceUtil } from '../../utils/service.utils';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Order } from './order.entity';
@@ -11,7 +11,10 @@ import { UUID_REGEX } from '../../utils/regex.util';
 import { ProductModel } from '../models/model.entity';
 import { ProductService } from '../products/product.service';
 import { CustomerCouponService } from '../customer-coupons/customer-coupon.service';
-import { Status } from '../../commons/enum.common';
+import { ShipmentStatus, Status } from '../../commons/enum.common';
+import { IPaginate } from '../../utils/interface.util';
+import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
+import { getTotalPages } from '../../utils/number.util';
 
 @Injectable()
 export class OrderService extends ServiceUtil<Order, Repository<Order>> {
@@ -57,13 +60,20 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     );
     /**
      * check product model
+     * use map to save total quantity of model of same product
      */
+    const quantityMap = new Map();
     const models: ProductModel[] = [];
     for (let i = 0; i < reduceProducts.length; i++) {
       const existModel = await this.productModelService.checkModel(
         reduceProducts[i],
       );
       models.push(existModel);
+      const pkProduct = existModel.fkProduct.pkProduct;
+      quantityMap.set(
+        pkProduct,
+        Number(quantityMap.get(pkProduct) | 0) + reduceProducts[i].quantity,
+      );
     }
     /**
      * check customer coupon id
@@ -157,7 +167,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
         if (flashSale) {
           if (
             Number(flashSale.remainQuantity) >=
-            Number(reduceProducts[i].quantity)
+            Number(quantityMap.get(models[i].fkProduct.pkProduct))
           ) {
             orderProduct.priceAfterSale =
               Number(product.exportPrice) - Number(flashSale.discount);
@@ -165,7 +175,9 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
              * reduce flashsale remain quantity
              */
             flashSale.remainQuantity =
-              flashSale.remainQuantity - reduceProducts[i].quantity;
+              (flashSale.remainQuantity - quantityMap.get(product.pkProduct)) |
+              0;
+            console.log(flashSale);
             await entityManager.save(flashSale);
           }
         }
@@ -179,11 +191,13 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
         // reduce quantity instock of model
         models[i].quantityInStock =
           models[i].quantityInStock - reduceProducts[i].quantity;
+        // reduce total quantity in map
         await entityManager.save(models[i]);
       }
 
       /**
        * resolve order information:
+       * default shipment price is 10
        */
       order.shipmentPrice = 10;
       order.totalPrice = allTotalPrice;
@@ -193,5 +207,132 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
         order.shipmentPrice;
       await entityManager.save(order);
     });
+  }
+
+  async customerGetOrder(
+    username: string,
+    page: number,
+  ): Promise<IPaginate<Order>> {
+    if (page <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is not valid',
+      );
+    }
+    const existCustomer = await this.customerService.getCustomerByUsername(
+      username,
+    );
+    const allOrders = await this.findAllByCondition({
+      fkCustomer: { pkCustomer: existCustomer.pkCustomer },
+    });
+    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= allOrders.length) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
+    }
+    const elements = allOrders.slice(
+      (page - 1) * MAX_ELEMENTS_OF_PAGE,
+      page * MAX_ELEMENTS_OF_PAGE,
+    );
+    return {
+      page,
+      totalPages: getTotalPages(allOrders.length),
+      totalElements: allOrders.length,
+      elements,
+    };
+  }
+
+  async customerGetDetails(username: string, id: string): Promise<Order> {
+    const existCustomer = await this.customerService.getCustomerByUsername(
+      username,
+    );
+    const order = await this.repository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.fkCustomer', 'customer')
+      .leftJoinAndSelect('order.fkCustomerCoupon', 'coupon')
+      .leftJoinAndSelect('coupon.fkCoupon', 'detail')
+      .leftJoinAndSelect('order.fkDelivery', 'delivery')
+      .leftJoinAndSelect('order.products', 'products')
+      .where('"order"."fkCustomer" = :customer AND "order"."pkOrder" = :id', {
+        id,
+        customer: existCustomer.pkCustomer,
+      })
+      .getOne();
+    if (!order) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'You dont have this order',
+      );
+    }
+    return order;
+  }
+
+  async getOrders(page: number): Promise<IPaginate<Order>> {
+    if (page <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Page number is not valid',
+      );
+    }
+    const allOrders = await this.findAllByCondition({});
+    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= allOrders.length) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
+    }
+    const elements = allOrders.slice(
+      (page - 1) * MAX_ELEMENTS_OF_PAGE,
+      page * MAX_ELEMENTS_OF_PAGE,
+    );
+    return {
+      page,
+      totalPages: getTotalPages(allOrders.length),
+      totalElements: allOrders.length,
+      elements,
+    };
+  }
+
+  async changeStatus(status: ShipmentStatus, id: string): Promise<void> {
+    if (status === ShipmentStatus.COMPLETE) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Only customer can be set complete status for order',
+      );
+    }
+    const existOrder = await this.findOneByCondition({ pkOrder: id });
+    if (!existOrder) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Order with this id is not exist',
+      );
+    }
+    if (existOrder.shipmentStatus === ShipmentStatus.COMPLETE) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'This order was complete',
+      );
+    }
+    existOrder.shipmentStatus = status;
+    await existOrder.save();
+  }
+
+  async customerCompleteOrder(username: string, id: string): Promise<void> {
+    const existCustomer = await this.customerService.getCustomerByUsername(
+      username,
+    );
+    const existOrder = await this.findOneByCondition({
+      fkCustomer: { pkCustomer: existCustomer.pkCustomer },
+      pkOrder: id,
+    });
+    if (!existOrder) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Customer is not exist',
+      );
+    }
+    if (existOrder.shipmentStatus !== ShipmentStatus.TRANSPORTING) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `This order was ${existOrder.shipmentStatus}`,
+      );
+    }
+    existOrder.shipmentStatus = ShipmentStatus.COMPLETE;
+    await existOrder.save();
   }
 }

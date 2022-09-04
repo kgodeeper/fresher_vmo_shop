@@ -2,12 +2,14 @@ import { PaymentStatus, ShipmentStatus } from '../../commons/enum.common';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Customer } from '../customers/customer.entity';
 import { OrderProduct } from '../order-products/order-product.entity';
@@ -82,4 +84,14 @@ export class Order extends BaseEntity {
 
   @OneToMany(() => OrderProduct, (orderProduct) => orderProduct.fkOrder)
   products: OrderProduct[];
+
+  @CreateDateColumn({
+    default: 'now()',
+  })
+  createAt: string;
+
+  @UpdateDateColumn({
+    default: 'now()',
+  })
+  updateAt: string;
 }

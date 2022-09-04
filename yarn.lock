@@ -840,6 +840,18 @@
     consola "^2.15.0"
     node-fetch "^2.6.1"
 
+"@paypal/payouts-sdk@^1.0.0":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@paypal/payouts-sdk/-/payouts-sdk-1.1.1.tgz#c712252191d572e160f290f495e21ae9eb26ddcf"
+  integrity sha512-m8hICfBjrf8WKXYGt84wVS7YLa+exB/HQwItn33ArmDDH1Hno0vqwwE2oY7TNTuKcBpxSE75D9KMrtNlVN9kZQ==
+  dependencies:
+    "@paypal/paypalhttp" "^1.0.1"
+
+"@paypal/paypalhttp@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@paypal/paypalhttp/-/paypalhttp-1.0.1.tgz#406e337bf86cec7ea58c42eb167eb9b57ed88110"
+  integrity sha512-DC7AHxTT7drF6dUi3YaFdPVuT15sIkpD5H2eHmdtFgxM4UanS1o1ZDfMhR9mpxd8o+X6pz2r+EZVRRq+n1cssQ==
+
 "@selderee/plugin-htmlparser2@^0.6.0":
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/@selderee/plugin-htmlparser2/-/plugin-htmlparser2-0.6.0.tgz#27e994afd1c2cb647ceb5406a185a5574188069d"
@@ -4926,6 +4938,13 @@ neo-async@^2.6.0, neo-async@^2.6.2:
   version "2.6.2"
   resolved "https://registry.yarnpkg.com/neo-async/-/neo-async-2.6.2.tgz#b4aafb93e3aeb2d8174ca53cf163ab7d7308305f"
   integrity sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==
+
+nestjs-paypal-payouts@^1.0.3:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/nestjs-paypal-payouts/-/nestjs-paypal-payouts-1.0.3.tgz#5d24d7c7f6a1a1342b8ce8678d8df5ab87c497c7"
+  integrity sha512-y/hf64mnFmUhSWD7Hfl8VHdSUP07WXkzXG1NaMQdI5Y2nYr+RH19CvIZrHkMVoJn8CfjFZkEMC6QER8MFbhiAw==
+  dependencies:
+    "@paypal/payouts-sdk" "^1.0.0"
 
 nestjs-session@^2.0.0:
   version "2.0.0"

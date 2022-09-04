@@ -30,4 +30,5 @@ export enum ShipmentStatus {
   PREPAIRING = 'prepairing',
   TRANSPORTING = 'transporting',
   COMPLETE = 'complete',
+  FAILURE = 'failure',
 }

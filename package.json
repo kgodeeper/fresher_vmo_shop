@@ -38,6 +38,7 @@
     "cloudinary": "^1.31.0",
     "crypto": "^1.0.1",
     "express-session": "^1.17.3",
+    "nestjs-paypal-payouts": "^1.0.3",
     "nestjs-session": "^2.0.0",
     "pg": "^8.8.0",
     "reflect-metadata": "^0.1.13",

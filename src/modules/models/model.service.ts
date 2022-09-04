@@ -5,6 +5,7 @@ import { AddProductModelDto } from './model.dto';
 import { ProductModel } from './model.entity';
 import { ProductService } from '../products/product.service';
 import { AppHttpException } from '../../exceptions/http.exception';
+import { Status } from '../../commons/enum.common';
 
 @Injectable()
 export class ProductModelService extends ServiceUtil<
@@ -88,6 +89,23 @@ export class ProductModelService extends ServiceUtil<
         `This model is out of stock`,
       );
     }
+    if (existModel.status !== Status.ACTIVE) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Model was remove');
+    }
     return existModel;
+  }
+
+  async getProductIdByModel(id: string): Promise<string> {
+    const existModel = await this.findOneAndJoin(
+      { fkProduct: true },
+      { pkProductModel: id },
+    );
+    if (!existModel) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Model is not exist');
+    }
+    if (existModel.status !== Status.ACTIVE) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Model was remove');
+    }
+    return existModel.fkProduct.pkProduct;
   }
 }
