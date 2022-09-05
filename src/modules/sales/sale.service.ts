@@ -1,13 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { ServiceUtil } from '../../utils/service.utils';
-import {
-  Between,
-  DataSource,
-  DataTypeNotSupportedError,
-  MoreThan,
-  Repository,
-} from 'typeorm';
+import { Between, DataSource, MoreThan, Repository } from 'typeorm';
 import { Sale } from './sale.entity';
 import { AddSaleDto } from './sale.dto';
 import { IPaginate } from '../../utils/interface.util';
