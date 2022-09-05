@@ -18,6 +18,7 @@ import { SaleProductModule } from './modules/sale-products/sale-product.module';
 import { CouponModule } from './modules/coupons/coupon.module';
 import { CustomerCouponModule } from './modules/customer-coupons/customer-coupon.module';
 import { OrderModule } from './modules/orders/order.module';
+import { SaleModule } from './modules/sales/sale.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { OrderModule } from './modules/orders/order.module';
     CouponModule,
     CustomerCouponModule,
     OrderModule,
+    SaleModule,
   ],
   controllers: [],
   providers: [],

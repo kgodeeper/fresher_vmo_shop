@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { delayWhen } from 'rxjs';
 import { validChar } from '../commons/string.common';
 
 export async function encrypt(password: string): Promise<string> {
@@ -45,4 +46,8 @@ export function formatName(input: string): string {
     return item[0].toUpperCase() + item.substring(1);
   });
   return name.join(' ');
+}
+
+export function convertDate(date: Date): string {
+  return date.toISOString().split('T').join(' ').split('Z')[0];
 }

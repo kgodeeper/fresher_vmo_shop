@@ -3,12 +3,20 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
+  Timestamp,
   UpdateDateColumn,
 } from 'typeorm';
+import { SaleProduct } from '../sale-products/sale-product.entity';
 
 @Entity()
 export class Sale extends BaseEntity {
+  constructor(begin: Date, end: Date) {
+    super();
+    this.begin = begin;
+    this.end = end;
+  }
   @PrimaryGeneratedColumn('uuid')
   pkSale: string;
 
@@ -16,13 +24,13 @@ export class Sale extends BaseEntity {
     type: 'timestamp',
     default: 'now()',
   })
-  begin: string;
+  begin: Date;
 
   @Column({
     type: 'timestamp',
     default: 'now()',
   })
-  end: string;
+  end: Date;
 
   @CreateDateColumn({
     default: 'now()',
@@ -33,4 +41,7 @@ export class Sale extends BaseEntity {
     default: 'now()',
   })
   updateAt: string;
+
+  @OneToMany(() => SaleProduct, (product) => product.fkSale)
+  products: SaleProduct[];
 }

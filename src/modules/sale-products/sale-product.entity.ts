@@ -24,7 +24,7 @@ export class SaleProduct extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   pkSaleProduct: string;
 
-  @ManyToOne(() => Sale)
+  @ManyToOne(() => Sale, (sale) => sale.products)
   @JoinColumn({
     name: 'fkSale',
   })
