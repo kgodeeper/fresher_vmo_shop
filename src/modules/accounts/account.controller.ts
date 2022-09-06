@@ -120,7 +120,7 @@ export class AccountController {
   }
 
   @ApiExtraModels(EmailDto)
-  @Post('forgot-password-required')
+  @Post('forgot-password-require')
   async requireForgotPassword(@Body() body: EmailDto): Promise<void> {
     return this.accountService.requireForgotPassword(body.email);
   }
