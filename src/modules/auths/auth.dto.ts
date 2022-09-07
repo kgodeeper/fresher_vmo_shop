@@ -1,34 +1,44 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsEmail, IsNotEmpty, Matches } from 'class-validator';
 import * as Regex from '../../utils/regex.util';
+import * as Message from '../../commons/string.common';
 
 export class RegisterDto {
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
-  @Matches(Regex.USERNAME_REGEX)
+  @Matches(Regex.USERNAME_REGEX, {
+    message: Message.ValidatorMessage.USERNAME_NOT_VALID,
+  })
   username: string;
 
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
-  @Matches(Regex.PASSWORD_REGEX)
+  @Matches(Regex.PASSWORD_REGEX, {
+    message: Message.ValidatorMessage.PASSWORD_NOT_VALID,
+  })
   password: string;
 
   @ApiProperty()
-  @IsString()
-  @IsEmail()
   @IsNotEmpty()
+  @IsEmail()
   email: string;
 }
 
 export class LoginDto {
   @ApiProperty()
-  @IsString()
+  @IsNotEmpty()
   account: string;
 
   @ApiProperty()
-  @IsString()
-  @Matches(Regex.PASSWORD_REGEX)
+  @IsNotEmpty()
+  @Matches(Regex.PASSWORD_REGEX, {
+    message: Message.ValidatorMessage.PASSWORD_NOT_VALID,
+  })
   password: string;
+}
+
+export class getAccessDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  refreshToken: string;
 }

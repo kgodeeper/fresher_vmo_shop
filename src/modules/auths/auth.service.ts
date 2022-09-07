@@ -17,16 +17,16 @@ export class AuthService {
     private configService: ConfigService,
     private jwtService: AppJwtService,
     private cacheService: RedisCacheService,
-    private mailService: MailService,
   ) {}
 
-  async userRegister(account: RegisterDto) {
+  async userRegister(registerInfo: RegisterDto) {
+    const { username, password, email } = registerInfo;
     /**
      * check account already exists
      */
     const existAccount = await this.accountService.findOneByCondition([
-      { username: account.username },
-      { email: account.email },
+      { username },
+      { email },
     ]);
     if (existAccount) {
       throw new AppHttpException(
@@ -38,8 +38,8 @@ export class AuthService {
      * if not exists account in database, insert account into database
      * before insert, we need convert RegisterDto to Account
      */
-    account = new Account(account.username, account.password, account.email);
-    await this.accountService.createAccount(account as Account);
+    const account = new Account(username, password, email);
+    await this.accountService.createAccount(account);
     /**
      * after insert success, update cache number of account for get accounts
      */
@@ -52,33 +52,20 @@ export class AuthService {
   }
 
   async userLogin(
-    account: LoginDto,
+    loginInfo: LoginDto,
     session: any,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     /**
      * check account with account and password exist ?
      */
-    account.password = await encrypt(account.password);
-    const existAccount = await this.accountService.findOneByCondition([
-      { username: account.account },
-      { email: account.account },
-    ]);
-    if (!existAccount) {
+    const existAccount = await this.accountService.getActiveAccountName(
+      loginInfo.account,
+    );
+    const hashPassword = await encrypt(loginInfo.password);
+    if (hashPassword !== existAccount.password) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
-        'Account is not exist',
-      );
-    }
-    if (existAccount.password !== account.password) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Password is incorrect',
-      );
-    }
-    if (existAccount.status !== AccountStatus.ACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account was ${existAccount.status}`,
+        `Password is incorrect`,
       );
     }
     /**
@@ -150,7 +137,7 @@ export class AuthService {
       if (cachedRefreshToken !== refreshToken) {
         throw new AppHttpException(
           HttpStatus.BAD_REQUEST,
-          'Token is not match',
+          'Refresh token is incorrect',
         );
       }
       const accessToken = await this.jwtService.signToken(

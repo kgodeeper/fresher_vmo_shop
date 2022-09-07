@@ -9,21 +9,45 @@ import { RedisCacheService } from '../caches/cache.service';
 import { AppJwtService } from '../jwts/jwt.service';
 import { HandleResponseInterceptor } from '../../interceptors/handle-response.interceptor';
 import { AuthGuard } from '../../guards/auth.guard';
+import { AccountStatus, Role } from '../../commons/enum.common';
 
 let app: INestApplication;
 let testModule: TestingModule;
+let accountService: AccountService;
+const activeAccount = new Account(
+  'supertest',
+  'supertest1',
+  'test@gmail.com',
+  Role.CUSTOMER,
+  AccountStatus.ACTIVE,
+);
+const inactiveAccount = new Account(
+  'supertest',
+  'supertest1',
+  'test@gmail.com',
+  Role.CUSTOMER,
+  AccountStatus.INACTIVE,
+);
+
 describe('auths itegration test', () => {
   beforeAll(async () => {
     testModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
-    app = testModule.createNestApplication();
+    accountService = testModule.get<AccountService>(AccountService);
+    // mock common service
     jest
       .spyOn(testModule.get<RedisCacheService>(RedisCacheService), 'get')
       .mockResolvedValue('refresh');
     jest
       .spyOn(testModule.get<RedisCacheService>(RedisCacheService), 'set')
       .mockResolvedValue();
+    jest
+      .spyOn(testModule.get<AppJwtService>(AppJwtService), 'signToken')
+      .mockResolvedValue('fake_token');
+    jest.spyOn(accountService, 'sendVerifyEmail').mockResolvedValue();
+    // use global component
+    app = testModule.createNestApplication();
     app.useGlobalInterceptors(new HandleResponseInterceptor());
     app.useGlobalPipes(new ValidationPipe());
     await app.init();
@@ -33,101 +57,70 @@ describe('auths itegration test', () => {
     await app.close();
   });
 
-  it('login success', async () => {
-    const payload = {
-      account: 'testaccount',
-      password: 'testpassword',
-    };
-    jest
-      .spyOn(
-        testModule.get<AccountService>(AccountService),
-        'findOneByCondition',
-      )
-      .mockResolvedValue({ password: payload.password } as Account);
-    jest
-      .spyOn(testModule.get<AppJwtService>(AppJwtService), 'signToken')
-      .mockResolvedValue('access');
-    jest.spyOn(util, 'encrypt').mockResolvedValue(payload.password);
-    const response = await request(app.getHttpServer())
-      .post('/auths/login')
-      .send(payload);
-    expect(response.body.accessToken).not.toBeNull();
-  });
-
   describe('POST auths/login', () => {
-    it('invalid information', async () => {
-      const payload = {
-        account: 'kdev17',
-        password: 'test',
+    it('login success', async () => {
+      const loginInfo = {
+        account: 'supertest',
+        password: 'supertest1',
       };
+      jest
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(activeAccount);
+      jest.spyOn(util, 'encrypt').mockResolvedValue(loginInfo.password);
+
+      const response = await request(app.getHttpServer())
+        .post('/auths/login')
+        .send(loginInfo);
+      expect(response.status).toBe(200);
+    });
+
+    it('login failure, invalid information', async () => {
+      const loginInfo = {
+        password: 'supertest1',
+      };
+      const response = await request(app.getHttpServer())
+        .post('/auths/login')
+        .send(loginInfo);
+      expect(response.status).toBe(400);
+    });
+
+    it('login failure, invalid password', async () => {
+      const loginInfo = {
+        account: 'supertest',
+        password: 'supertest2',
+      };
+      jest
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(activeAccount);
+      jest.spyOn(util, 'encrypt').mockResolvedValue(loginInfo.password);
+      const response = await request(app.getHttpServer())
+        .post('/auths/login')
+        .send(loginInfo);
+      expect(response.status).toBe(400);
+    });
+
+    it('login failure, invalid username', async () => {
+      const payload = {
+        account: 'supertest1',
+        password: 'supertest2',
+      };
+      jest
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(null as Account);
       const response = await request(app.getHttpServer())
         .post('/auths/login')
         .send(payload);
       expect(response.status).toBe(400);
     });
 
-    it('invalid password', async () => {
+    it('login failure, account is not active', async () => {
       const payload = {
-        account: 'testaccount',
-        password: 'testpassword',
+        account: 'supertest',
+        password: 'supertest1',
       };
       jest
-        .spyOn(
-          testModule.get<AccountService>(AccountService),
-          'findOneByCondition',
-        )
-        .mockResolvedValue({ password: payload.password } as Account);
-      jest
-        .spyOn(testModule.get<AppJwtService>(AppJwtService), 'signToken')
-        .mockResolvedValue('access');
-      jest.spyOn(util, 'encrypt').mockResolvedValue(payload.password + 'abc');
-      const response = await request(app.getHttpServer())
-        .post('/auths/login')
-        .send(payload);
-      expect(response.status).toBe(400);
-    });
-
-    it('invalid username', async () => {
-      const payload = {
-        account: 'testaccount',
-        password: 'testpassword',
-      };
-      jest
-        .spyOn(
-          testModule.get<AccountService>(AccountService),
-          'findOneByCondition',
-        )
-        .mockResolvedValue({} as Account);
-      jest
-        .spyOn(testModule.get<AppJwtService>(AppJwtService), 'signToken')
-        .mockResolvedValue('access');
-      const response = await request(app.getHttpServer())
-        .post('/auths/login')
-        .send(payload);
-      expect(response.status).toBe(400);
-    });
-
-    it('account is not active', async () => {
-      const payload = {
-        account: 'testaccount',
-        password: 'testpassword',
-      };
-      jest
-        .spyOn(
-          testModule.get<AccountService>(AccountService),
-          'findOneByCondition',
-        )
-        .mockResolvedValue({
-          password: payload.password,
-          status: 'inactive',
-        } as Account);
-      jest
-        .spyOn(testModule.get<AppJwtService>(AppJwtService), 'signToken')
-        .mockResolvedValue('access');
-      jest
-        .spyOn(testModule.get<AppJwtService>(AppJwtService), 'signToken')
-        .mockResolvedValue('access');
-      jest.spyOn(util, 'encrypt').mockResolvedValue(payload.password);
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(inactiveAccount);
       const response = await request(app.getHttpServer())
         .post('/auths/login')
         .send(payload);
@@ -136,61 +129,45 @@ describe('auths itegration test', () => {
   });
 
   describe('POST auths/register', () => {
+    const registerInfo = {
+      username: 'supertest',
+      password: 'supertest1',
+      email: 'test@gmail.com',
+    };
     it('register success', async () => {
-      const payload = {
-        username: 'testusername',
-        password: 'password17',
-        email: 'email@gmail.com',
-      };
       jest
-        .spyOn(
-          testModule.get<AccountService>(AccountService),
-          'findOneByCondition',
-        )
+        .spyOn(accountService, 'findOneByCondition')
         .mockResolvedValue(null as Account);
-      jest
-        .spyOn(testModule.get<AccountService>(AccountService), 'createAccount')
-        .mockResolvedValue({} as Account);
-
-      jest
-        .spyOn(
-          testModule.get<AccountService>(AccountService),
-          'sendVerifyEmail',
-        )
-        .mockResolvedValue();
+      jest.spyOn(accountService, 'createAccount').mockResolvedValue(null);
       const response = await request(app.getHttpServer())
         .post('/auths/register')
-        .send(payload);
+        .send(registerInfo);
       expect(response.status).toBe(200);
     });
 
     it('invalid information', async () => {
-      const payload = {
-        username: 'testusername',
-        password: 'test',
+      const registerInfo = {
+        username: 'supertest',
         email: 'email',
       };
       const response = await request(app.getHttpServer())
         .post('/auths/register')
-        .send(payload);
+        .send(registerInfo);
       expect(response.status).toBe(400);
     });
 
-    it('register failure', async () => {
-      const payload = {
+    it('register failure, account already exist', async () => {
+      const registerInfo = {
         username: 'testusername',
         password: 'password17',
         email: 'email@gmail.com',
       };
       jest
-        .spyOn(
-          testModule.get<AccountService>(AccountService),
-          'findOneByCondition',
-        )
-        .mockResolvedValue({ username: 'any' } as Account);
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(activeAccount);
       const response = await request(app.getHttpServer())
         .post('/auths/register')
-        .send(payload);
+        .send(registerInfo);
       expect(response.status).toBe(400);
     });
   });
@@ -216,9 +193,6 @@ describe('auths itegration test', () => {
       jest
         .spyOn(testModule.get<AppJwtService>(AppJwtService), 'verifyToken')
         .mockResolvedValue({ username: 'testusername' });
-      jest
-        .spyOn(testModule.get<RedisCacheService>(RedisCacheService), 'get')
-        .mockResolvedValue('token');
       const response = await request(app.getHttpServer())
         .post('/auths/token')
         .send({ refreshToken: 'refresh' });
