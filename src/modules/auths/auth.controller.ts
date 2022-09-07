@@ -1,11 +1,5 @@
 import { Body, Controller, Post, Session } from '@nestjs/common';
-import {
-  ApiBadRequestResponse,
-  ApiBody,
-  ApiExtraModels,
-  ApiOkResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { getAccessDto, LoginDto, RegisterDto } from './auth.dto';
 import { AuthService } from './auth.service';
 
