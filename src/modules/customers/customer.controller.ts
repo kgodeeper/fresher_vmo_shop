@@ -27,7 +27,6 @@ export class CustomerController {
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @ApiBearerAuth()
-  @ApiExtraModels(UpdateCustomerInformationDto)
   @Put('update')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.CUSTOMER)

@@ -23,23 +23,18 @@ export class CustomerService extends ServiceUtil<
     username: string,
     information: UpdateCustomerInformationDto,
   ): Promise<void> {
-    const existAccount = await this.accountService.findOneByCondition({
-      username,
-    });
-    if (existAccount.status !== AccountStatus.ACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account was ${existAccount.status}`,
-      );
-    }
-    let existCustomer = await this.findOneAndJoin(
-      { fkAccount: true },
-      {
-        fkAccount: { pkAccount: existAccount.pkAccount },
-      },
-    );
     const { dob, gender } = information;
-    const fullname = formatName(information.fullname);
+    let fullname = information.fullname;
+    if (fullname) {
+      fullname = formatName(information.fullname);
+    }
+    if (!dob && !gender && !fullname) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Nothing to update');
+    }
+    const existAccount = await this.accountService.getActiveAccountName(
+      username,
+    );
+    let existCustomer = await this.getCustomerByAccount(existAccount.pkAccount);
     if (!existCustomer) {
       existCustomer = new Customer(fullname, dob, gender, existAccount);
     } else {
@@ -48,47 +43,43 @@ export class CustomerService extends ServiceUtil<
     /**
      * update if customer is exist, insert else
      */
-    await this.repository.upsert(existCustomer, ['fkAccount']);
+    await this.upsertCustomer(existCustomer);
   }
 
   async getInformation(username: string): Promise<Customer> {
-    const existAccount = await this.accountService.findOneByCondition({
+    const existAccount = await this.accountService.getActiveAccountName(
       username,
-    });
-    if (existAccount.status !== AccountStatus.ACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account was ${existAccount.status}`,
-      );
-    }
-    let customer = await this.findOneAndJoin(
-      { fkAccount: true },
-      { fkAccount: { pkAccount: existAccount.pkAccount } },
     );
-    if (!customer) {
+    let existCustomer = await this.getCustomerByAccount(existAccount.pkAccount);
+    if (!existCustomer) {
       /**
        * if customer information is not updated, only return customer's account
        */
-      customer = new Customer(null, null, null, existAccount);
+      existCustomer = new Customer(null, null, null, existAccount);
     }
     /**
      * delete some secret information
      */
-    delete customer.pkCustomer;
-    delete customer.fkAccount.password;
-    delete customer.fkAccount.pkAccount;
-    return customer;
+    delete existCustomer.pkCustomer;
+    delete existCustomer.fkAccount.password;
+    delete existCustomer.fkAccount.pkAccount;
+    return existCustomer;
+  }
+
+  async getCustomerByAccount(accountId: string): Promise<Customer> {
+    const existCustomer = await this.findOneAndJoin(
+      { fkAccount: true },
+      { fkAccount: { pkAccount: accountId } },
+    );
+    return existCustomer;
   }
 
   async getCustomerByUsername(username: string): Promise<Customer> {
-    const existAccount = await this.accountService.checkAccountByUsername(
-      true,
-      true,
+    const existAccount = await this.accountService.getActiveAccountName(
       username,
     );
-    const existCustomer = await this.findOneAndJoin(
-      { fkAccount: true },
-      { fkAccount: { pkAccount: existAccount.pkAccount } },
+    const existCustomer = await this.getCustomerByAccount(
+      existAccount.pkAccount,
     );
     if (!existCustomer) {
       throw new AppHttpException(
@@ -97,5 +88,9 @@ export class CustomerService extends ServiceUtil<
       );
     }
     return existCustomer;
+  }
+
+  async upsertCustomer(customer: Customer): Promise<void> {
+    this.repository.upsert(customer, ['fkAccount']);
   }
 }
