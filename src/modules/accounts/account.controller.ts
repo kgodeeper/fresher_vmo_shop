@@ -2,10 +2,10 @@ import {
   Body,
   Controller,
   Get,
-  Param,
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -18,7 +18,7 @@ import {
   ApiExtraModels,
   ApiForbiddenResponse,
   ApiOkResponse,
-  ApiParam,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -39,7 +39,7 @@ import {
 import { AccountService } from './account.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RoleGuard } from '../../guards/role.guard';
-import { IPaginate } from 'src/utils/interface.util';
+import { IPagination } from 'src/utils/interface.util';
 import { Account } from './account.entity';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { Role } from '../../commons/enum.common';
@@ -51,22 +51,19 @@ import { Role } from '../../commons/enum.common';
 export class AccountController {
   constructor(private accountService: AccountService) {}
 
-  @ApiExtraModels(ActiveAccountDto)
   @Patch('active')
   async activeAccount(@Body() body: ActiveAccountDto): Promise<void> {
     return this.accountService.activeAccount(body);
   }
 
-  @ApiExtraModels(EmailDto)
   @Post('resend-verify-code')
   async resendVerifyCode(@Body() body: EmailDto): Promise<void> {
     return this.accountService.resendVerifyCode(body);
   }
 
+  @ApiBearerAuth()
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiExtraModels(ChangeUsernameDto)
-  @ApiBearerAuth()
   @Patch('username')
   @UseGuards(AuthGuard)
   async changeUsername(
@@ -80,10 +77,9 @@ export class AccountController {
     );
   }
 
+  @ApiBearerAuth()
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiExtraModels(ChangePasswordDto)
-  @ApiBearerAuth()
   @Patch('password')
   @UseGuards(AuthGuard)
   async changePassword(
@@ -93,10 +89,9 @@ export class AccountController {
     return this.accountService.changePassword(body, username);
   }
 
+  @ApiBearerAuth()
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiBearerAuth()
-  @ApiExtraModels(ChangeEmailRequireDto)
   @Post('change-email-require')
   @UseGuards(AuthGuard)
   async changeEmailRequired(
@@ -106,44 +101,39 @@ export class AccountController {
     return this.accountService.changeEmailRequired(body, username);
   }
 
+  @ApiBearerAuth()
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiExtraModels(ChangeEmailDto)
-  @ApiBearerAuth()
   @Patch('email')
   @UseGuards(AuthGuard)
   async changeEmail(
     @Body() body: ChangeEmailDto,
     @UserBound() username: string,
   ): Promise<void> {
-    return this.accountService.changeEmail(body.email, body.code, username);
+    return this.accountService.changeEmail(body.code, username);
   }
 
-  @ApiExtraModels(EmailDto)
   @Post('forgot-password-require')
   async requireForgotPassword(@Body() body: EmailDto): Promise<void> {
     return this.accountService.requireForgotPassword(body.email);
   }
 
-  @ApiExtraModels(ForgotPasswordDto)
   @Patch('forgot-password')
   async forgotPassword(@Body() body: ForgotPasswordDto): Promise<void> {
     return this.accountService.forgotPassword(body);
   }
 
   @ApiBearerAuth()
-  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
+      required: ['avatar'],
       properties: {
-        avatar: {
-          type: 'string',
-          format: 'binary',
-        },
+        avatar: { type: 'string', format: 'binary' },
       },
     },
   })
+  @ApiConsumes('multipart/form-data')
   @Patch('avatar')
   @UseGuards(AuthGuard)
   @UseInterceptors(FileInterceptor('avatar'))
@@ -154,26 +144,24 @@ export class AccountController {
     return this.accountService.updateAvatar(username, file);
   }
 
+  @ApiBearerAuth()
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiParam({
-    name: 'page',
-    type: 'number',
-  })
-  @ApiBearerAuth()
-  @Get('/alls/:page')
+  @Get('/all')
+  @ApiQuery({ name: 'page', type: 'number' })
+  @ApiQuery({ name: 'limit', type: 'number' })
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
   @UseGuards(AuthGuard, RoleGuard)
   async getAllAccounts(
-    @Param('page', new ParseIntPipe()) page: number,
-  ): Promise<IPaginate<Account>> {
-    return this.accountService.getAllAccounts(page);
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+  ): Promise<IPagination<Account>> {
+    return this.accountService.getAllAccounts(page, Number(limit));
   }
 
+  @ApiBearerAuth()
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiBearerAuth()
-  @ApiExtraModels(ChangeStatusDto)
   @Patch('status')
   @RequireRoles(Role.SUPERUSER)
   @UseGuards(AuthGuard, RoleGuard)
@@ -184,14 +172,13 @@ export class AccountController {
     return this.accountService.changeStatus(
       username,
       body.accountID,
-      body.status,
+      body.newStatus,
     );
   }
 
+  @ApiBearerAuth()
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiExtraModels(ChangeRoleDto)
-  @ApiBearerAuth()
   @Patch('role')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.SUPERUSER)
@@ -199,14 +186,17 @@ export class AccountController {
     @Body() body: ChangeRoleDto,
     @UserBound() username: string,
   ): Promise<void> {
-    return this.accountService.changeRole(username, body.accountID, body.role);
+    return this.accountService.changeRole(
+      username,
+      body.accountID,
+      body.newRole,
+    );
   }
 
+  @ApiBearerAuth()
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Post('create')
-  @ApiExtraModels(CreateAccountDto)
-  @ApiBearerAuth()
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.SUPERUSER)
   async createAccount(@Body() body: CreateAccountDto): Promise<void> {
@@ -216,9 +206,9 @@ export class AccountController {
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @ApiBearerAuth()
-  @Get('synch')
+  @Post('synch')
   @UseGuards(AuthGuard, RoleGuard)
-  @RequireRoles(Role.SUPERUSER)
+  @RequireRoles(Role.SUPERUSER, Role.STAFF)
   async synchronizedCache(): Promise<void> {
     return this.accountService.synchronizedCache();
   }

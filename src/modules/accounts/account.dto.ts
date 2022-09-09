@@ -1,138 +1,126 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiQuery } from '@nestjs/swagger';
 import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsNumberString,
   IsString,
   Matches,
 } from 'class-validator';
 import { AccountStatus, Role } from '../../commons/enum.common';
 import * as Regex from '../../utils/regex.util';
+import * as Message from '../../commons/string.common';
 
 export class ActiveAccountDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
   @IsEmail()
   email: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @Matches(Regex.VERIFY_CODE_REGEX)
+  @Matches(Regex.VERIFY_CODE_REGEX, {
+    message: Message.ValidatorMessage.VERIFY_CODE_NOT_VALID,
+  })
   code: string;
 }
 
 export class ChangePasswordDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @Matches(Regex.PASSWORD_REGEX)
+  @Matches(Regex.PASSWORD_REGEX, {
+    message: Message.ValidatorMessage.PASSWORD_NOT_VALID,
+  })
   oldPassword: string;
 
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @Matches(Regex.PASSWORD_REGEX)
+  @Matches(Regex.PASSWORD_REGEX, {
+    message: Message.ValidatorMessage.PASSWORD_NOT_VALID,
+  })
   newPassword: string;
 }
 
 export class ChangeUsernameDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @Matches(Regex.PASSWORD_REGEX)
+  @Matches(Regex.PASSWORD_REGEX, {
+    message: Message.ValidatorMessage.PASSWORD_NOT_VALID,
+  })
   password: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  @Matches(Regex.USERNAME_REGEX)
+  @Matches(Regex.USERNAME_REGEX, {
+    message: Message.ValidatorMessage.USERNAME_NOT_VALID,
+  })
   username: string;
 }
 
 export class ChangeEmailRequireDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @Matches(Regex.PASSWORD_REGEX)
+  @Matches(Regex.PASSWORD_REGEX, {
+    message: Message.ValidatorMessage.PASSWORD_NOT_VALID,
+  })
   password: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   @IsEmail()
-  email: string;
+  newEmail: string;
 }
 
 export class ChangeEmailDto {
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  @IsEmail()
-  email: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  @Matches(Regex.VERIFY_CODE_REGEX)
+  @Matches(Regex.VERIFY_CODE_REGEX, {
+    message: Message.ValidatorMessage.VERIFY_CODE_NOT_VALID,
+  })
   code: string;
 }
 
 export class ForgotPasswordDto {
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   @IsEmail()
   email: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  @Matches(Regex.PASSWORD_REGEX)
-  password: string;
+  @Matches(Regex.PASSWORD_REGEX, {
+    message: Message.ValidatorMessage.PASSWORD_NOT_VALID,
+  })
+  newPassword: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  @Matches(Regex.VERIFY_CODE_REGEX)
+  @Matches(Regex.VERIFY_CODE_REGEX, {
+    message: Message.ValidatorMessage.VERIFY_CODE_NOT_VALID,
+  })
   code: string;
 }
 
 export class ChangeStatusDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @Matches(Regex.UUID_REGEX)
+  @Matches(Regex.UUID_REGEX, {
+    message: Message.ValidatorMessage.UUID_NOT_VALID,
+  })
   accountID: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsEnum(AccountStatus)
-  status: AccountStatus;
+  @IsEnum(AccountStatus, {
+    message: Message.ValidatorMessage.ACCOUNT_STATUS_NOT_VALID,
+  })
+  newStatus: AccountStatus;
 }
 
 export class ChangeRoleDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @Matches(Regex.UUID_REGEX)
+  @Matches(Regex.UUID_REGEX, {
+    message: Message.ValidatorMessage.UUID_NOT_VALID,
+  })
   accountID: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsEnum(Role)
-  role: Role;
+  @IsEnum(Role, { message: Message.ValidatorMessage.ROLE_NOT_VALID })
+  newRole: Role;
 }
 
 export class CreateAccountDto {
   @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
   @IsEmail()
   email: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsEnum(Role)
+  @IsEnum(Role, { message: Message.ValidatorMessage.ROLE_NOT_VALID })
   role: Role;
 }

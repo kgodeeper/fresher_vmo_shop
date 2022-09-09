@@ -1,9 +1,9 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { RedisCacheService } from '../caches/cache.service';
 import { ServiceUtil } from '../../utils/service.utils';
 import { Account } from './account.entity';
-import { AccountStatus, Role, Status } from '../../commons/enum.common';
+import { AccountStatus, Role } from '../../commons/enum.common';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { EmailDto } from 'src/commons/dto.common';
 import { MailService } from '../mailer/mail.service';
@@ -15,15 +15,15 @@ import {
 } from '../../utils/string.util';
 import { ConfigService } from '@nestjs/config';
 import {
-  ChangeEmailDto,
   ChangeEmailRequireDto,
   ChangePasswordDto,
   ForgotPasswordDto,
 } from './account.dto';
 import { UploadService } from '../uploads/upload.service';
-import { IPaginate } from '../../utils/interface.util';
+import { IPagination } from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
-import { getTotalPages } from '../../utils/number.util';
+import { PaginationService } from '../paginations/pagination.service';
+import { ignoreElements } from 'rxjs';
 
 @Injectable()
 export class AccountService extends ServiceUtil<Account, Repository<Account>> {
@@ -31,6 +31,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   constructor(
     private dataSource: DataSource,
     private mailService: MailService,
+    private paginationService: PaginationService<Account>,
     private configService: ConfigService,
     private cacheService: RedisCacheService,
     private uploadService: UploadService,
@@ -47,16 +48,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     code: string;
   }): Promise<void> {
     const { email, code } = verifyInfo;
-    const existAccount = await this.findOneByCondition({ email });
-    /**
-     * if account status is not inactive, throw error
-     */
-    if (existAccount.status !== AccountStatus.INACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account was ${existAccount.status}`,
-      );
-    }
+    const existAccount = await this.getInactiveAccountName(email);
     /**
      * get verify code in redis
      * if account is exist, compare code with code in redis
@@ -82,15 +74,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
      * if account exist, check account status
      * if account status is inactive, resend verify code, then cache verify code
      */
-    const existAccount = await this.findOneByCondition({
-      email: contact.email,
-    });
-    if (existAccount?.status !== AccountStatus.INACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account is already ${existAccount.status}`,
-      );
-    }
+    const existAccount = await this.getInactiveAccountName(contact.email);
     await this.sendVerifyEmail(existAccount.username, existAccount.email);
   }
 
@@ -121,11 +105,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     /**
      * check account exist, account status, then check password
      */
-    const existAccount = await this.checkAccountByUsername(
-      true,
-      true,
-      oldUsername,
-    );
+    const existAccount = await this.getActiveAccountName(oldUsername);
     password = await encrypt(password);
     if (existAccount.password !== password) {
       throw new AppHttpException(
@@ -136,13 +116,11 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     /**
      * if account is exist, check new account with username
      */
-    const countExist = await this.countAllByCondition({
-      username: newUsername,
-    });
-    if (countExist) {
+    const accountIsExist = await this.checkAccountIsExist(newUsername);
+    if (accountIsExist) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
-        'Account with username already exist',
+        `Account with ${newUsername} already exist`,
       );
     }
     /**
@@ -173,11 +151,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
      * check account and account status
      * then, check old password
      */
-    const existAccount = await this.checkAccountByUsername(
-      true,
-      true,
-      username,
-    );
+    const existAccount = await this.getActiveAccountName(username);
     const password = await encrypt(passwordInfo.oldPassword);
     if (password !== existAccount.password) {
       throw new AppHttpException(
@@ -203,11 +177,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     /**
      * check exist account and status, then check password
      */
-    const existAccount = await this.checkAccountByUsername(
-      true,
-      true,
-      username,
-    );
+    const existAccount = await this.getActiveAccountName(username);
     emailInfo.password = await encrypt(emailInfo.password);
     if (emailInfo.password !== existAccount.password) {
       throw new AppHttpException(
@@ -218,7 +188,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     /**
      * check old email can not be equal new email
      */
-    if (emailInfo.email === existAccount.email) {
+    if (emailInfo.newEmail === existAccount.email) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
         'new email can not be equal to old email',
@@ -227,42 +197,42 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     /**
      * check email already exist ?
      */
-    const countExist = await this.countAllByCondition({
-      email: emailInfo.email,
-    });
-    if (countExist) {
+    const accountIsExist = await this.checkAccountIsExist(emailInfo.newEmail);
+    if (accountIsExist) {
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Email already exist');
     }
 
     const verifyCode = generateCode();
     this.mailService.changeEmail(
       existAccount.username,
-      emailInfo.email,
+      emailInfo.newEmail,
       verifyCode,
     );
     /**
      * cache verify code
      */
     await this.cacheService.set(
-      `user:${existAccount.username}:${emailInfo.email}:changeCode`,
+      `user:${existAccount.username}:${existAccount.email}:changeCode:${emailInfo.newEmail}`,
       verifyCode,
       this.configService.get<number>('VERIFY_TTL'),
     );
   }
 
-  async changeEmail(
-    email: string,
-    code: string,
-    username: string,
-  ): Promise<any> {
-    const existAccount = await this.checkAccountByUsername(
-      true,
-      true,
-      username,
-    );
-    const verifyCode = await this.cacheService.get(
-      `user:${username}:${email}:changeCode`,
-    );
+  async changeEmail(code: string, username: string): Promise<any> {
+    const existAccount = await this.getActiveAccountName(username);
+    const cachedCode = (
+      await this.cacheService.keys(
+        `user:${existAccount.username}:${existAccount.email}:changeCode:*`,
+      )
+    )[0];
+    if (!cachedCode) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Not exist change email require`,
+      );
+    }
+    const newEmail = cachedCode.split(':').at(-1);
+    const verifyCode = await this.cacheService.get(cachedCode);
     if (verifyCode !== code) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
@@ -270,33 +240,21 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       );
     }
     const oldEmail = existAccount.email;
-    existAccount.email = email;
+    existAccount.email = newEmail;
     await existAccount.save();
     /**
      * remove cache
      */
     await this.cacheService.destroyAllKeys(
-      `user:${existAccount.username}:*:changeCode`,
+      `user:${existAccount.username}:*:changeCode:*`,
     );
     await this.cacheService.destroyAllKeys(`email:${oldEmail}:*`);
   }
 
   async requireForgotPassword(email: string): Promise<void> {
-    const existAccount = await this.findOneByCondition({ email });
-    if (!existAccount) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Account with this email is not exist',
-      );
-    }
-    if (existAccount.status !== AccountStatus.ACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account with this email was ${existAccount.status}`,
-      );
-    }
+    const existAccount = await this.getActiveAccountName(email);
     const verifyCode = generateCode();
-    await this.mailService.forgotPassword(email, verifyCode);
+    await this.mailService.forgotPassword(existAccount.email, verifyCode);
     /**
      * cache verifyCode
      */
@@ -308,8 +266,8 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   }
 
   async forgotPassword(forgotInfo: ForgotPasswordDto): Promise<void> {
-    const { email, code } = forgotInfo;
-    let { password } = forgotInfo;
+    const { email, code, newPassword } = forgotInfo;
+    const existAccount = await this.getActiveAccountName(email);
     const verifyCode = await this.cacheService.get(
       `email:${email}:forgotPasswordCode`,
     );
@@ -319,9 +277,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
         'Verify code is not correct',
       );
     }
-    const existAccount = await this.findOneByCondition({ email });
-    password = await encrypt(password);
-    existAccount.password = password;
+    existAccount.password = await encrypt(newPassword);
     await existAccount.save();
     /**
      * clear cache
@@ -337,18 +293,9 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     username: string,
     file: Express.Multer.File,
   ): Promise<void> {
-    const existAccount = await this.findOneByCondition({ username });
-    if (!existAccount) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Account with this email is not exist',
-      );
-    }
-    if (existAccount.status !== AccountStatus.ACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account with this email was ${existAccount.status}`,
-      );
+    const existAccount = await this.getActiveAccountName(username);
+    if (!file) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'File not found');
     }
     const uploaded = await this.uploadService.uploadToCloudinary(
       file,
@@ -370,17 +317,24 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     await existAccount.save();
   }
 
-  async getAllAccounts(page: number): Promise<IPaginate<Account>> {
+  async getAllAccounts(
+    page: number,
+    limit: number,
+  ): Promise<IPagination<Account>> {
+    if (!limit) limit = MAX_ELEMENTS_OF_PAGE;
+    if (limit <= 0) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Limit number is not valid`,
+      );
+    }
     if (page <= 0) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
         'Page number is not valid',
       );
     }
-    const accounts = await this.findAllWithLimit(
-      (page - 1) * MAX_ELEMENTS_OF_PAGE,
-      MAX_ELEMENTS_OF_PAGE,
-    );
+    const accounts = await this.findAllWithLimit((page - 1) * limit, limit);
     if (accounts.length === 0) {
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
     }
@@ -390,12 +344,13 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     const totalElements = Number(
       await this.cacheService.get('shop:all:accounts'),
     );
-    return {
-      page,
-      totalPages: getTotalPages(totalElements),
+    this.paginationService.setPrefix('accounts/all');
+    return this.paginationService.getResponseObject(
+      accounts,
       totalElements,
-      elements: accounts,
-    };
+      page,
+      limit,
+    );
   }
 
   async changeStatus(
@@ -403,17 +358,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     accountID: string,
     status: AccountStatus,
   ): Promise<void> {
-    const existAccount = await this.findOneByCondition({
-      pkAccount: accountID,
-    });
-
-    if (!existAccount) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Account with this ID is not exist',
-      );
-    }
-
+    const existAccount = await this.getAccountById(accountID);
     if (status === existAccount.status) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
@@ -441,16 +386,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     accountID: string,
     role: Role,
   ): Promise<void> {
-    const existAccount = await this.findOneByCondition({
-      pkAccount: accountID,
-    });
-
-    if (!existAccount) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Account with this ID is not exist',
-      );
-    }
+    const existAccount = await this.getAccountById(accountID);
 
     if (role === existAccount.role) {
       throw new AppHttpException(
@@ -479,14 +415,11 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   }
 
   async superuserCreateAccount(email: string, role: Role): Promise<void> {
-    const existAccount = await this.findOneByCondition({ email });
-    /**
-     * check account with this email exist ?
-     */
-    if (existAccount) {
+    const isExistAccount = await this.checkEmailIsExist(email);
+    if (isExistAccount) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
-        'Account with this email is already exist',
+        `Account with email ${email} already exist`,
       );
     }
     /**
@@ -501,7 +434,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       role,
       AccountStatus.ACTIVE,
     );
-    await this.repository.insert(account);
+    await this.insertAccount(account);
     /**
      * update cache quantity
      */
@@ -522,13 +455,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   }
 
   async getAccountInformation(username: string): Promise<Account> {
-    const existAccount = await this.findOneByCondition({ username });
-    if (existAccount.status !== AccountStatus.ACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account was ${existAccount.status}`,
-      );
-    }
+    const existAccount = await this.getActiveAccountName(username);
     return existAccount;
   }
 
@@ -551,5 +478,73 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       );
     }
     return existAccount;
+  }
+
+  async getActiveAccountName(account: string): Promise<Account> {
+    const existAccount = await this.findOneByCondition([
+      { email: account },
+      { username: account },
+    ]);
+    if (!existAccount) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Account with account name ${account} is not exist`,
+      );
+    }
+    if (existAccount.status !== AccountStatus.ACTIVE) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Account with account name ${account} was ${existAccount.status}`,
+      );
+    }
+    return existAccount;
+  }
+
+  async getInactiveAccountName(account: string): Promise<Account> {
+    const existAccount = await this.findOneByCondition([
+      { email: account },
+      { username: account },
+    ]);
+    if (!existAccount) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Account with account name ${account} is not exist`,
+      );
+    }
+    if (existAccount.status === AccountStatus.ACTIVE) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Account with account name ${account} was ${existAccount.status}`,
+      );
+    }
+    return existAccount;
+  }
+
+  async checkAccountIsExist(account: string): Promise<boolean> {
+    const existAccount = await this.findOneByCondition([
+      { username: account },
+      { password: account },
+    ]);
+    return !!existAccount;
+  }
+
+  async getAccountById(id: string): Promise<Account> {
+    const existAccount = await this.findOneByCondition({ pkAccount: id });
+    if (!existAccount) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Account with id ${id} is not exist`,
+      );
+    }
+    return existAccount;
+  }
+
+  async insertAccount(account: Account): Promise<void> {
+    await this.repository.insert(account);
+  }
+
+  async checkEmailIsExist(email: string): Promise<boolean> {
+    const existAccount = await this.findOneByCondition({ email });
+    return !!existAccount;
   }
 }
