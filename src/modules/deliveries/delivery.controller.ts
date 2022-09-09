@@ -6,14 +6,11 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   UseGuards,
-  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
-  ApiExtraModels,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiParam,
@@ -30,7 +27,7 @@ import { AddDeliveryDto, UpdateDeliveryDto } from './delivery.dto';
 import { Delivery } from './delivery.entity';
 import { DeliveryService } from './delivery.service';
 
-@Controller('Deliveries')
+@Controller('deliveries')
 @ApiTags('Deliveries')
 @ApiOkResponse()
 @ApiBadRequestResponse()

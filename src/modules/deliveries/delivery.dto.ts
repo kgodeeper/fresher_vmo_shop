@@ -1,18 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
 import * as Regex from '../../utils/regex.util';
+import * as Message from '../../commons/string.common';
 
 export class AddDeliveryDto {
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  @Matches(Regex.PHONE_REGEX)
+  @Matches(Regex.PHONE_REGEX, {
+    message: Message.ValidatorMessage.PHONE_NOT_VALID,
+  })
   phone: string;
 
   @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  @Matches(Regex.FULLNAME_REGEX)
+  @Matches(Regex.FULLNAME_REGEX, {
+    message: Message.ValidatorMessage.FULLNAME_NOT_VALID,
+  })
   receiver: string;
 
   @ApiProperty()

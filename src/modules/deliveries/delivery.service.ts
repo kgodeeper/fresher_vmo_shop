@@ -26,15 +26,12 @@ export class DeliveryService extends ServiceUtil<
     username: string,
     deliveryInfo: AddDeliveryDto,
   ): Promise<void> {
-    const existAccount = await this.accountService.checkAccountByUsername(
-      true,
-      true,
+    const existAccount = await this.accountService.getActiveAccountName(
       username,
     );
 
-    const existCustomer = await this.customerService.findOneAndJoin(
-      { fkAccount: true },
-      { fkAccount: { pkAccount: existAccount.pkAccount } },
+    const existCustomer = await this.customerService.getCustomerByAccount(
+      existAccount.pkAccount,
     );
 
     /**
@@ -242,4 +239,6 @@ export class DeliveryService extends ServiceUtil<
     }
     return existDelivery;
   }
+
+  async countCustomerDelivery(accountId: string): Promise<number> {}
 }

@@ -7,7 +7,6 @@ import {
   ParseIntPipe,
   ParseUUIDPipe,
   Post,
-  Put,
   UseGuards,
 } from '@nestjs/common';
 import {

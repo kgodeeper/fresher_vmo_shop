@@ -26,17 +26,12 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { IPaginate } from 'src/utils/interface.util';
-import { FindRelationsNotFoundError } from 'typeorm';
 import { UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
 import { RoleGuard } from '../../guards/role.guard';
-import {
-  AddProductDto,
-  FilterProductDto,
-  UpdateProductDto,
-} from './product.dto';
+import { AddProductDto, UpdateProductDto } from './product.dto';
 import { Product } from './product.entity';
 import { ProductService } from './product.service';
 

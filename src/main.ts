@@ -8,6 +8,7 @@ import { HandleResponseInterceptor } from './interceptors/handle-response.interc
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('api/v1');
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new HandleResponseInterceptor());
   app.useGlobalPipes(new ValidationPipe());
