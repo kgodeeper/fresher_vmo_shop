@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -45,5 +45,15 @@ export class CustomerController {
   @RequireRoles(Role.CUSTOMER)
   async getInformation(@UserBound() username: string): Promise<Customer> {
     return this.customerService.getInformation(username);
+  }
+
+  @ApiUnauthorizedResponse()
+  @ApiBadRequestResponse()
+  @ApiBearerAuth()
+  @Post('register')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.CUSTOMER)
+  async changeRegisterSale(@UserBound() username: string): Promise<void> {
+    return this.customerService.changeRegisterSale(username);
   }
 }

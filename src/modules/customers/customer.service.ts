@@ -106,4 +106,10 @@ export class CustomerService extends ServiceUtil<
       };
     });
   }
+
+  async changeRegisterSale(username: string): Promise<void> {
+    const existCustomer = await this.getCustomerByUsername(username);
+    existCustomer.receiveSale = !existCustomer.receiveSale;
+    await existCustomer.save();
+  }
 }
