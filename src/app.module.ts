@@ -19,6 +19,10 @@ import { CouponModule } from './modules/coupons/coupon.module';
 import { CustomerCouponModule } from './modules/customer-coupons/customer-coupon.module';
 import { OrderModule } from './modules/orders/order.module';
 import { SaleModule } from './modules/sales/sale.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import EmailSchedulingService from './modules/schedules/email-scheduling.service';
+import { MailModule } from './modules/mailer/mail.module';
+import { CacheSchedulingService } from './modules/schedules/cache-scheduling.service';
 
 @Module({
   imports: [
@@ -35,6 +39,8 @@ import { SaleModule } from './modules/sales/sale.module';
     MulterModule.register({
       storage: memoryStorage(),
     }),
+    ScheduleModule.forRoot(),
+    MailModule,
     AuthModule,
     AccountModule,
     CustomerModule,
@@ -50,6 +56,6 @@ import { SaleModule } from './modules/sales/sale.module';
     SaleModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [EmailSchedulingService, CacheSchedulingService],
 })
 export class AppModule {}

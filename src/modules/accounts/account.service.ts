@@ -23,7 +23,6 @@ import { UploadService } from '../uploads/upload.service';
 import { IPagination } from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { PaginationService } from '../paginations/pagination.service';
-import { ignoreElements } from 'rxjs';
 
 @Injectable()
 export class AccountService extends ServiceUtil<Account, Repository<Account>> {

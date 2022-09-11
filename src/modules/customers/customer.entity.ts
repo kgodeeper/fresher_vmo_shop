@@ -1,4 +1,4 @@
-import { Status, Gender } from '../../commons/enum.common';
+import { Gender } from '../../commons/enum.common';
 import {
   BaseEntity,
   Column,
@@ -9,7 +9,6 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Account } from '../accounts/account.entity';
-import { Tracing } from 'trace_events';
 
 @Entity()
 export class Customer extends BaseEntity {
@@ -45,6 +44,11 @@ export class Customer extends BaseEntity {
     nullable: true,
   })
   fullname: string;
+
+  @Column({
+    default: false,
+  })
+  receiveSale: boolean;
 
   @UpdateDateColumn({
     default: `now()`,

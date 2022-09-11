@@ -93,4 +93,17 @@ export class CustomerService extends ServiceUtil<
   async upsertCustomer(customer: Customer): Promise<void> {
     this.repository.upsert(customer, ['fkAccount']);
   }
+
+  async getSaleEmail(): Promise<{ name: string; email: string }[]> {
+    const customerRegSales = await this.findAllWithJoin(
+      { fkAccount: true },
+      { receiveSale: true },
+    );
+    return customerRegSales.map((item): { name: string; email: string } => {
+      return {
+        name: item.fkAccount.username,
+        email: item.fkAccount.email,
+      };
+    });
+  }
 }

@@ -1,6 +1,7 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { AppHttpException } from '../../exceptions/http.exception';
+import { Injectable } from '@nestjs/common';
+import { convertDate } from '../../utils/string.util';
+import { Sale } from '../sales/sale.entity';
 
 @Injectable()
 export class MailService {
@@ -51,6 +52,23 @@ export class MailService {
       context: {
         username,
         password,
+      },
+    });
+  }
+
+  flashSale(destination: string, name: string, flashSale: Sale) {
+    const begin = structuredClone(flashSale.begin);
+    const end = structuredClone(flashSale.end);
+    begin.setHours(begin.getHours() + 7);
+    end.setHours(end.getHours() + 7);
+    this.mailerService.sendMail({
+      to: destination,
+      subject: 'FLASHSALE UPCOMMING',
+      template: './sale-notify.template.hbs',
+      context: {
+        name,
+        begin: convertDate(begin),
+        end: convertDate(end),
       },
     });
   }

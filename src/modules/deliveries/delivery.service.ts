@@ -7,7 +7,6 @@ import { CustomerService } from '../customers/customer.service';
 import { AddDeliveryDto, UpdateDeliveryDto } from './delivery.dto';
 import { Delivery } from './delivery.entity';
 import { Status } from '../../commons/enum.common';
-import { UuidDto } from 'src/commons/dto.common';
 
 @Injectable()
 export class DeliveryService extends ServiceUtil<
@@ -46,12 +45,8 @@ export class DeliveryService extends ServiceUtil<
     /**
      * limit address number of user: 3
      */
-    const countDelivery = await this.countAllWithJoin(
-      { fkCustomer: true },
-      {
-        fkCustomer: { pkCustomer: existCustomer.pkCustomer },
-        status: Status.ACTIVE,
-      },
+    const countDelivery = await this.countCustomerDelivery(
+      existCustomer.pkCustomer,
     );
     if (countDelivery >= 3) {
       throw new AppHttpException(
@@ -85,7 +80,7 @@ export class DeliveryService extends ServiceUtil<
       province,
       existCustomer,
     );
-    await this.repository.save(delivery);
+    await this.saveDelivery(delivery);
   }
 
   async updateDelivery(
@@ -240,5 +235,14 @@ export class DeliveryService extends ServiceUtil<
     return existDelivery;
   }
 
-  async countCustomerDelivery(accountId: string): Promise<number> {}
+  async countCustomerDelivery(customerId: string): Promise<number> {
+    return this.countAllByCondition({
+      fkCustomer: { pkCustomer: customerId },
+      status: Status.ACTIVE,
+    });
+  }
+
+  async saveDelivery(delivery: Delivery): Promise<void> {
+    this.repository.save(delivery);
+  }
 }

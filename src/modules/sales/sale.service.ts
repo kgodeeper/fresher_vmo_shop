@@ -7,10 +7,14 @@ import { AddSaleDto } from './sale.dto';
 import { IPaginate } from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class SaleService extends ServiceUtil<Sale, Repository<Sale>> {
-  constructor(private dataSource: DataSource) {
+  constructor(
+    private dataSource: DataSource,
+    private configService: ConfigService,
+  ) {
     super(dataSource.getRepository(Sale));
   }
 
@@ -100,5 +104,17 @@ export class SaleService extends ServiceUtil<Sale, Repository<Sale>> {
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Sale is not exist');
     }
     return existSale;
+  }
+
+  async getUpcomingSale(): Promise<Sale> {
+    const delayTime = this.configService.get<number>('SEND_FLASHSALE_DELAY');
+    return this.repository
+      .createQueryBuilder()
+      .where(
+        `"begin" BETWEEN now() + interval '${
+          delayTime - 1
+        } minutes' AND now() + interval '${delayTime} minutes'`,
+      )
+      .getOne();
   }
 }
