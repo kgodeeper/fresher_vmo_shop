@@ -6,27 +6,22 @@ import { SaleService } from '../sales/sale.service';
 
 @Injectable()
 export default class EmailSchedulingService {
-  private isSend;
+  private delayAfterSend;
   constructor(
     private mailService: MailService,
     private customerService: CustomerService,
     private flashSaleService: SaleService,
   ) {
-    this.isSend = false;
-  }
-
-  delay(minutes: number) {
-    const endTime = new Date();
-    endTime.setMinutes(endTime.getMinutes() + minutes);
-    while (new Date() < endTime) {}
+    this.delayAfterSend = 0;
   }
 
   @Cron(CronExpression.EVERY_10_SECONDS)
   async sendFlashSaleEmail(): Promise<void> {
-    if (this.isSend === true) {
-      this.delay(1);
-      this.isSend = false;
+    if (this.delayAfterSend > 0 && this.delayAfterSend < 7) {
+      this.delayAfterSend++;
+      return;
     }
+    this.delayAfterSend = 0;
     const upcomingSale = await this.flashSaleService.getUpcomingSale();
     if (upcomingSale) {
       console.log(upcomingSale);
@@ -34,7 +29,7 @@ export default class EmailSchedulingService {
       listRegCustomer.forEach((item) => {
         this.mailService.flashSale(item.email, item.name, upcomingSale);
       });
-      this.isSend = true;
+      this.delayAfterSend = 1;
     }
   }
 }
