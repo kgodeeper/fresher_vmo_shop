@@ -1,4 +1,10 @@
-import { HttpStatus, Injectable, UseFilters } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpStatus,
+  Inject,
+  Injectable,
+  UseFilters,
+} from '@nestjs/common';
 import { ServiceUtil } from '../../utils/service.utils';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Order } from './order.entity';
@@ -11,10 +17,15 @@ import { UUID_REGEX } from '../../utils/regex.util';
 import { ProductModel } from '../models/model.entity';
 import { ProductService } from '../products/product.service';
 import { CustomerCouponService } from '../customer-coupons/customer-coupon.service';
-import { ShipmentStatus, Status } from '../../commons/enum.common';
+import {
+  PaymentStatus,
+  ShipmentStatus,
+  Status,
+} from '../../commons/enum.common';
 import { IPaginate } from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
+import { PaymentService } from '../payments/payment.service';
 
 @Injectable()
 export class OrderService extends ServiceUtil<Order, Repository<Order>> {
@@ -25,6 +36,8 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     private customerService: CustomerService,
     private deliveryService: DeliveryService,
     private productModelService: ProductModelService,
+    @Inject(forwardRef(() => PaymentService))
+    private paymentService: PaymentService,
   ) {
     super(dataSource.getRepository(Order));
   }
@@ -177,7 +190,6 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
             flashSale.remainQuantity =
               (flashSale.remainQuantity - quantityMap.get(product.pkProduct)) |
               0;
-            console.log(flashSale);
             await entityManager.save(flashSale);
           }
         }
@@ -251,6 +263,9 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
       .leftJoinAndSelect('coupon.fkCoupon', 'detail')
       .leftJoinAndSelect('order.fkDelivery', 'delivery')
       .leftJoinAndSelect('order.products', 'products')
+      .leftJoinAndSelect('products.fkProductModel', 'model')
+      .leftJoinAndSelect('model.fkProduct', 'product')
+      .leftJoinAndSelect('order.fkPayment', 'payment')
       .where('"order"."fkCustomer" = :customer AND "order"."pkOrder" = :id', {
         id,
         customer: existCustomer.pkCustomer,
@@ -262,6 +277,9 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
         'You dont have this order',
       );
     }
+    order.products.forEach((item) => {
+      delete item.fkProductModel.fkProduct.importPrice;
+    });
     return order;
   }
 
@@ -334,5 +352,24 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     }
     existOrder.shipmentStatus = ShipmentStatus.COMPLETE;
     await existOrder.save();
+  }
+
+  async saveOrder(order: Order): Promise<void> {
+    await this.repository.save(order);
+  }
+
+  async cancelOrder(orderId: string, username: string): Promise<void> {
+    const existOrder = await this.customerGetDetails(username, orderId);
+    if (existOrder.shipmentStatus !== ShipmentStatus.PREPAIRING) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `This order was ${existOrder.shipmentStatus}`,
+      );
+    }
+    //existOrder.shipmentStatus = ShipmentStatus.FAILURE;
+    await this.saveOrder(existOrder);
+    if (existOrder.paymentStatus === PaymentStatus.PAID) {
+      await this.paymentService.refund(existOrder);
+    }
   }
 }

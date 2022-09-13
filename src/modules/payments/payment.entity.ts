@@ -29,11 +29,10 @@ export class Payment extends BaseEntity {
   @Column()
   ammount: number;
 
-  @OneToOne(() => Order)
-  @JoinColumn({
-    name: 'fkOrder',
+  @Column({
+    nullable: true,
   })
-  fkOrder: Order;
+  refundPath: string;
 
   @Column({
     type: 'enum',

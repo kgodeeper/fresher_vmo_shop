@@ -23,6 +23,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import EmailSchedulingService from './modules/schedules/email-scheduling.service';
 import { MailModule } from './modules/mailer/mail.module';
 import { CacheSchedulingService } from './modules/schedules/cache-scheduling.service';
+import { PaymentModule } from './modules/payments/payment.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { CacheSchedulingService } from './modules/schedules/cache-scheduling.ser
     CustomerCouponModule,
     OrderModule,
     SaleModule,
+    PaymentModule,
   ],
   controllers: [],
   providers: [EmailSchedulingService, CacheSchedulingService],

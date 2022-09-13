@@ -39,7 +39,6 @@ export class PaymentService extends ServiceUtil<Payment, Repository<Payment>> {
     let payment = order.fkPayment;
     if (!payment) {
       payment = new Payment();
-      payment.fkOrder = order;
       payment.ammount = order.finalPrice;
       await this.savePayment(payment);
       order.fkPayment = payment;
@@ -62,11 +61,12 @@ export class PaymentService extends ServiceUtil<Payment, Repository<Payment>> {
     payerId: string,
   ): Promise<void> {
     const order = await this.orderService.customerGetDetails(username, orderId);
-    await this.paypalService.pay(order, payId, payerId);
-    const payment = await this.findPaymentOrder(orderId);
+    const refundLink = await this.paypalService.pay(order, payId, payerId);
+    const payment = order.fkPayment;
     payment.status = PaymentStatus.PAID;
     payment.payId = payId;
     payment.payerId = payerId;
+    payment.refundPath = refundLink;
     await this.savePayment(payment);
     order.paymentStatus = PaymentStatus.PAID;
     await this.orderService.saveOrder(order);

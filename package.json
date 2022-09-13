@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^1.8.1",
+    "@nestjs/axios": "^0.1.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^9.0.0",
@@ -42,6 +43,7 @@
     "express-session": "^1.17.3",
     "nestjs-paypal-payouts": "^1.0.3",
     "nestjs-session": "^2.0.0",
+    "paypal-rest-sdk": "^1.8.1",
     "pg": "^8.8.0",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",

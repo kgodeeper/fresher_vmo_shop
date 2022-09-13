@@ -146,4 +146,17 @@ export class OrderController {
   ): Promise<void> {
     return this.orderService.changeStatus(body.status, id);
   }
+
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.CUSTOMER)
+  @Post('cancel/:id')
+  async cancelOrder(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UserBound() username,
+  ): Promise<void> {
+    return this.orderService.cancelOrder(id, username);
+  }
 }

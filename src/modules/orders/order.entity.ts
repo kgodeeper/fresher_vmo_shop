@@ -16,6 +16,7 @@ import { OrderProduct } from '../order-products/order-product.entity';
 import { Delivery } from '../deliveries/delivery.entity';
 import { Coupon } from '../coupons/coupon.entity';
 import { CustomerCoupon } from '../customer-coupons/customer-coupon.entity';
+import { Payment } from '../payments/payment.entity';
 
 @Entity()
 export class Order extends BaseEntity {
@@ -69,6 +70,12 @@ export class Order extends BaseEntity {
     name: 'fkDelivery',
   })
   fkDelivery: Delivery;
+
+  @OneToOne(() => Payment)
+  @JoinColumn({
+    name: 'fkPayment',
+  })
+  fkPayment: Payment;
 
   @OneToOne(() => CustomerCoupon)
   @JoinColumn({

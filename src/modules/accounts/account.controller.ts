@@ -150,13 +150,25 @@ export class AccountController {
   @Get('/all')
   @ApiQuery({ name: 'page', type: 'number' })
   @ApiQuery({ name: 'limit', type: 'number' })
+  @ApiQuery({ name: 'search', type: 'string' })
+  @ApiQuery({ name: 'sort', type: 'string' })
+  @ApiQuery({ name: 'filter', type: 'string' })
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
   @UseGuards(AuthGuard, RoleGuard)
   async getAllAccounts(
-    @Query('page', new ParseIntPipe()) page: number,
+    @Query('page', ParseIntPipe) page: number,
     @Query('limit') limit: string,
+    @Query('sort') sort: string,
+    @Query('search') search: string,
+    @Query('filter') filter: string,
   ): Promise<IPagination<Account>> {
-    return this.accountService.getAllAccounts(page, Number(limit));
+    return this.accountService.getAllAccounts(
+      page,
+      Number(limit),
+      search,
+      sort,
+      filter,
+    );
   }
 
   @ApiBearerAuth()
@@ -201,16 +213,6 @@ export class AccountController {
   @RequireRoles(Role.SUPERUSER)
   async createAccount(@Body() body: CreateAccountDto): Promise<void> {
     return this.accountService.superuserCreateAccount(body.email, body.role);
-  }
-
-  @ApiUnauthorizedResponse()
-  @ApiForbiddenResponse()
-  @ApiBearerAuth()
-  @Post('synch')
-  @UseGuards(AuthGuard, RoleGuard)
-  @RequireRoles(Role.SUPERUSER, Role.STAFF)
-  async synchronizedCache(): Promise<void> {
-    return this.accountService.synchronizedCache();
   }
 
   @ApiUnauthorizedResponse()

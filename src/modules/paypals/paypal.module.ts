@@ -1,3 +1,4 @@
+import { HttpModule, HttpService } from '@nestjs/axios';
 import { DynamicModule, Module } from '@nestjs/common';
 import { PaypalService } from './paypal.service';
 
@@ -7,6 +8,9 @@ export class PayPalModule {
     mode: 'sanbox';
     client_id: string;
     client_secret: string;
+    openid_client_id: string;
+    openid_client_secret: string;
+    openid_redirect_uri: string;
   }): DynamicModule {
     return {
       module: PayPalModule,
@@ -18,6 +22,11 @@ export class PayPalModule {
         PaypalService,
       ],
       exports: [PaypalService],
+      imports: [
+        HttpModule.register({
+          timeout: 5000,
+        }),
+      ],
     };
   }
 }

@@ -319,20 +319,12 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   async getAllAccounts(
     page: number,
     limit: number,
+    search: string,
+    sort: string,
+    filter: string,
   ): Promise<IPagination<Account>> {
-    if (!limit) limit = MAX_ELEMENTS_OF_PAGE;
-    if (limit <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Limit number is not valid`,
-      );
-    }
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Page number is not valid',
-      );
-    }
+    if (limit <= 0) limit = MAX_ELEMENTS_OF_PAGE;
+    if (page <= 0) page = 1;
     const accounts = await this.findAllWithLimit((page - 1) * limit, limit);
     if (accounts.length === 0) {
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
@@ -442,15 +434,6 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
      * send temporary username and password to new user's email
      */
     this.mailService.create(email, username, password);
-  }
-
-  async synchronizedCache(): Promise<void> {
-    const totalElements = await this.countAllByCondition({});
-    await this.cacheService.set(
-      `shop:all:accounts`,
-      String(totalElements),
-      this.configService.get<number>('INFINITY_TTL'),
-    );
   }
 
   async getAccountInformation(username: string): Promise<Account> {

@@ -24,6 +24,7 @@ export enum Gender {
 export enum PaymentStatus {
   PAID = 'paid',
   PENDING = 'pending',
+  REFUND = 'refund',
 }
 
 export enum ShipmentStatus {

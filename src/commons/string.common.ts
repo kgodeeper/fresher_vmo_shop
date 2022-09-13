@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+
 export const validChar =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/@*&#';
 
@@ -13,4 +15,9 @@ export const ValidatorMessage = {
   ROLE_NOT_VALID: 'Role must be customer, staff or superuser',
   FULLNAME_NOT_VALID: 'Fullname only contains letters and space',
   PHONE_NOT_VALID: 'Phone number must be valid phone',
+};
+
+export const PaymentUrl = {
+  return_url: `http://localhost:8888/api/v1/payments/paid`,
+  cancel_url: `http://localhost:8888/api/v1/payments/pay-cancel`,
 };
