@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,10 +15,11 @@ import {
   ApiBearerAuth,
   ApiForbiddenResponse,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { IPaginate } from 'src/utils/interface.util';
+import { IPaginate, IPagination } from 'src/utils/interface.util';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
@@ -66,5 +68,40 @@ export class CouponController {
     @Param('page', new ParseIntPipe()) page: number,
   ): Promise<IPaginate<Coupon>> {
     return this.couponService.getAllActiveCoupon(page);
+  }
+
+  @Get('current')
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'page',
+  })
+  @ApiQuery({
+    name: 'limit',
+  })
+  async getCurrentCoupon(
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('sort') sort: string,
+    @Query('filter') filter: string,
+  ): Promise<IPagination<Coupon>> {
+    return this.couponService.getCurrentCoupon(
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 }

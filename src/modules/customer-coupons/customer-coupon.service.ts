@@ -6,8 +6,8 @@ import { CustomerService } from '../customers/customer.service';
 import { CustomerCoupon } from './customer-coupon.entity';
 import { CouponService } from '../coupons/coupon.service';
 import { AppHttpException } from '../../exceptions/http.exception';
-import { Coupon } from '../coupons/coupon.entity';
-import { inflateRawSync } from 'zlib';
+import { Customer } from '../customers/customer.entity';
+import { Gender } from '../../commons/enum.common';
 
 @Injectable()
 export class CustomerCouponService extends ServiceUtil<
@@ -24,16 +24,19 @@ export class CustomerCouponService extends ServiceUtil<
   }
 
   async saveCoupon(code: string, username: string): Promise<void> {
-    const existAccount = await this.accountService.checkAccountByUsername(
-      true,
-      true,
+    const existAccount = await this.accountService.getActiveAccountName(
       username,
     );
-    const existCustomer = await this.customerService.findOneAndJoin(
-      { fkAccount: true },
-      { fkAccount: { pkAccount: existAccount.pkAccount } },
+    let existCustomer = await this.customerService.getCustomerByAccount(
+      existAccount.pkAccount,
     );
-    const existCoupon = await this.couponSerivice.findOneByCondition({ code });
+    if (!existCustomer) {
+      existCustomer = new Customer('', undefined, Gender.MALE, existAccount);
+      await this.customerService.saveCustomer(existCustomer);
+    }
+    const existCoupon = await this.couponSerivice.findOneByCondition([
+      { code },
+    ]);
     if (!existCoupon) {
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Coupon is not exist');
     }
@@ -53,28 +56,21 @@ export class CustomerCouponService extends ServiceUtil<
     /**
      * check coupon saved
      */
-    const existSaved = await this.findOneAndJoin(
-      { fkCoupon: true, fkCustomer: true },
-      {
-        fkCoupon: { pkCoupon: existCoupon.pkCoupon },
-        fkCustomer: { pkCustomer: existCustomer.pkCustomer },
-      },
-    );
+    const existSaved = await this.findOneByCondition({
+      fkCoupon: { pkCoupon: existCoupon.pkCoupon },
+      fkCustomer: { pkCustomer: existCustomer.pkCustomer },
+    });
     if (existSaved) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
         'This coupon already save before',
       );
     }
-    await this.dataSource.manager.transaction(
-      async (transactionalEntityManage) => {
-        await transactionalEntityManage.save(
-          new CustomerCoupon(existCoupon, existCustomer),
-        );
-        existCoupon.remain = existCoupon.remain - 1;
-        await transactionalEntityManage.save(existCoupon);
-      },
-    );
+    await this.dataSource.transaction(async (entityManager) => {
+      await entityManager.save(new CustomerCoupon(existCoupon, existCustomer));
+      existCoupon.remain = existCoupon.remain - 1;
+      await entityManager.save(existCoupon);
+    });
   }
 
   async getCustomerCouponById(id: string): Promise<CustomerCoupon> {

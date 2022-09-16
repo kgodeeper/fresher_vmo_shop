@@ -55,4 +55,53 @@ export class ServiceUtil<T extends BaseEntity, R extends Repository<T>> {
       where: condition,
     });
   }
+
+  async getAlls(
+    search: string,
+    sort: { key: string; value: string }[],
+    filter: string,
+    force?: { key: string; value: string },
+    name?: string,
+    join?: { key: string; value: string }[],
+    range?: string,
+  ): Promise<T[]> {
+    let isAnd = '';
+    if (search || filter || range) isAnd = ' AND ';
+    let whereCondition = '';
+    if (force?.key) {
+      whereCondition += `"${force.key}" = '${force.value}' ${isAnd}`;
+    }
+    if (search) {
+      whereCondition += search;
+      if (filter) whereCondition += ` AND ${filter}`;
+      if (range) whereCondition += ` AND ${range}`;
+    } else {
+      if (filter) {
+        if (range) whereCondition += `${filter} AND ${range}`;
+      } else if (range) {
+        whereCondition += `${range}`;
+      }
+    }
+    const repoWhere = await this.repository.createQueryBuilder(name);
+    repoWhere.where(`${whereCondition}`);
+    for (let i = 0; i < sort.length; i++) {
+      if (i === 0) {
+        await repoWhere.orderBy(
+          `"${sort[i].key}"`,
+          sort[i].value as 'ASC' | 'DESC',
+        );
+      } else {
+        await repoWhere.addOrderBy(
+          `"${sort[i].key}"`,
+          sort[i].value as 'ASC' | 'DESC',
+        );
+      }
+    }
+    if (join) {
+      for (let i = 0; i < join.length; i++) {
+        repoWhere.leftJoinAndSelect(join[i].key, join[i].value);
+      }
+    }
+    return repoWhere.getMany();
+  }
 }

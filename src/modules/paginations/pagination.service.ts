@@ -19,20 +19,29 @@ export class PaginationService<T> {
     totalItems: number,
     page: number,
     limit: number,
+    search: string,
+    sort: string,
+    filter: string,
   ): Promise<IPagination<T>> {
     let firstPage, lastPage, nextPage, previousPage;
+    let queryString = `&limit=${limit}`;
+    if (search) queryString += `&search=${search}`;
+    if (sort) queryString += `&sort=${sort}`;
+    if (filter) queryString += `&filter=${filter}`;
     if (totalItems == 0) {
       firstPage = lastPage = nextPage = previousPage = null;
     } else {
       const maxPage = getTotalPages(totalItems, limit);
-      firstPage = `${this.baseURL}/${this.prefix}/1`;
+      firstPage = `${this.baseURL}/${this.prefix}?page=1${queryString}`;
       nextPage =
         page + 1 <= maxPage
-          ? `${this.baseURL}/${this.prefix}/${page + 1}`
+          ? `${this.baseURL}/${this.prefix}?page=${page + 1}${queryString}`
           : null;
-      lastPage = `${this.baseURL}/${this.prefix}/${maxPage}`;
+      lastPage = `${this.baseURL}/${this.prefix}?page=${maxPage}${queryString}`;
       previousPage =
-        page - 1 > 0 ? `${this.baseURL}/${this.prefix}/${page - 1}}` : null;
+        page - 1 > 0
+          ? `${this.baseURL}/${this.prefix}?page=${page - 1}${queryString}`
+          : null;
     }
     return {
       items,
@@ -40,7 +49,7 @@ export class PaginationService<T> {
         totalItems,
         itemCount: items.length,
         itemPerPage: limit,
-        totalPages: getTotalPages(items.length, limit),
+        totalPages: getTotalPages(totalItems, limit),
         currentPage: page,
       },
       links: {

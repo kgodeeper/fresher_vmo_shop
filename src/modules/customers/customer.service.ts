@@ -36,9 +36,14 @@ export class CustomerService extends ServiceUtil<
     );
     let existCustomer = await this.getCustomerByAccount(existAccount.pkAccount);
     if (!existCustomer) {
-      existCustomer = new Customer(fullname, dob, gender, existAccount);
+      existCustomer = new Customer(
+        fullname,
+        new Date(dob),
+        gender,
+        existAccount,
+      );
     } else {
-      existCustomer.updateInformation(fullname, dob, gender);
+      existCustomer.updateInformation(fullname, new Date(dob), gender);
     }
     /**
      * update if customer is exist, insert else
@@ -111,5 +116,9 @@ export class CustomerService extends ServiceUtil<
     const existCustomer = await this.getCustomerByUsername(username);
     existCustomer.receiveSale = !existCustomer.receiveSale;
     await existCustomer.save();
+  }
+
+  async saveCustomer(customer: Customer): Promise<void> {
+    this.repository.save(customer);
   }
 }

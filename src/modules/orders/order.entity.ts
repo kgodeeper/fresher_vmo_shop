@@ -1,4 +1,8 @@
-import { PaymentStatus, ShipmentStatus } from '../../commons/enum.common';
+import {
+  OrderStatus,
+  PaymentStatus,
+  ShipmentStatus,
+} from '../../commons/enum.common';
 import {
   BaseEntity,
   Column,
@@ -64,6 +68,13 @@ export class Order extends BaseEntity {
     default: ShipmentStatus.PREPAIRING,
   })
   shipmentStatus: ShipmentStatus;
+
+  @Column({
+    type: 'enum',
+    enum: OrderStatus,
+    default: OrderStatus.PROCESSING,
+  })
+  status: OrderStatus;
 
   @ManyToOne(() => Delivery)
   @JoinColumn({

@@ -33,3 +33,9 @@ export enum ShipmentStatus {
   COMPLETE = 'complete',
   FAILURE = 'failure',
 }
+
+export enum OrderStatus {
+  PROCESSING = 'processing',
+  COMPLETE = 'complete',
+  CANCEL = 'cancel',
+}

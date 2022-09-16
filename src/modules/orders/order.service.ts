@@ -18,6 +18,7 @@ import { ProductModel } from '../models/model.entity';
 import { ProductService } from '../products/product.service';
 import { CustomerCouponService } from '../customer-coupons/customer-coupon.service';
 import {
+  OrderStatus,
   PaymentStatus,
   ShipmentStatus,
   Status,
@@ -351,6 +352,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
       );
     }
     existOrder.shipmentStatus = ShipmentStatus.COMPLETE;
+    existOrder.status = OrderStatus.COMPLETE;
     await existOrder.save();
   }
 
@@ -366,10 +368,13 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
         `This order was ${existOrder.shipmentStatus}`,
       );
     }
-    //existOrder.shipmentStatus = ShipmentStatus.FAILURE;
-    await this.saveOrder(existOrder);
     if (existOrder.paymentStatus === PaymentStatus.PAID) {
       await this.paymentService.refund(existOrder);
+      existOrder.paymentStatus = PaymentStatus.REFUND;
     }
+    existOrder.paymentStatus = PaymentStatus.REFUND;
+    existOrder.shipmentStatus = ShipmentStatus.FAILURE;
+    existOrder.status = OrderStatus.CANCEL;
+    await this.saveOrder(existOrder);
   }
 }

@@ -117,4 +117,11 @@ export class SaleService extends ServiceUtil<Sale, Repository<Sale>> {
       )
       .getOne();
   }
+
+  async getCurrentSale(): Promise<Sale> {
+    return this.repository
+      .createQueryBuilder()
+      .where(`now() BETWEEN "begin" AND "end"`)
+      .getOne();
+  }
 }

@@ -13,8 +13,8 @@ export class Coupon extends BaseEntity {
   constructor(
     code: string,
     discount: number,
-    begin: string,
-    end: string,
+    begin: Date,
+    end: Date,
     total: number,
   ) {
     super();
@@ -35,16 +35,21 @@ export class Coupon extends BaseEntity {
   discount: number;
 
   @Column({
-    type: 'timestamp',
+    type: 'date',
     default: 'now()',
   })
-  begin: string;
+  begin: Date;
 
   @Column({
-    type: 'timestamp',
+    type: 'date',
     default: 'now()',
   })
-  end: string;
+  end: Date;
+
+  @Column({
+    default: 'No description',
+  })
+  description: string;
 
   @Column()
   total: number;

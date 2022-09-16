@@ -6,11 +6,17 @@ import { AddCategoryDto } from './category.dto';
 import { Category } from './category.entity';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { UploadService } from '../uploads/upload.service';
-import { getPublicId } from '../../utils/string.util';
-import { IPaginate } from '../../utils/interface.util';
+import {
+  combineFilter,
+  combineSearch,
+  combineSort,
+  getPublicId,
+} from '../../utils/string.util';
+import { IPaginate, IPagination } from '../../utils/interface.util';
 import { RedisCacheService } from '../caches/cache.service';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
+import { PaginationService } from '../paginations/pagination.service';
 
 @Injectable()
 export class CategoryService extends ServiceUtil<
@@ -21,6 +27,7 @@ export class CategoryService extends ServiceUtil<
     private dataSource: DataSource,
     private cacheService: RedisCacheService,
     private uploadSerivice: UploadService,
+    private paginationService: PaginationService<Category>,
   ) {
     super(dataSource.getRepository(Category));
   }
@@ -115,35 +122,42 @@ export class CategoryService extends ServiceUtil<
     await existCategory.save();
   }
 
-  async getActiveCategory(page: number): Promise<IPaginate<Category>> {
+  async getActiveCategory(
+    page: number,
+    pLimit?: string,
+    search?: string,
+    sort?: string,
+    filter?: string,
+  ): Promise<IPagination<Category>> {
     /**
      * check valid page
      */
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Page number is not valid',
-      );
-    }
-    const totalElements = Number(
-      await this.cacheService.get('shop:active:categories'),
-    );
-    const elements = await this.repository
-      .createQueryBuilder()
-      .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
-      .limit(MAX_ELEMENTS_OF_PAGE)
-      .where('"status" = :status', { status: Status.ACTIVE })
-      .orderBy('position', 'ASC')
-      .getMany();
-    if (elements.length === 0) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
-    }
-    return {
-      page,
-      totalPages: getTotalPages(totalElements),
-      totalElements,
-      elements,
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    const force = {
+      key: 'status',
+      value: 'active',
     };
+    const sortStr = combineSort(sort);
+    const filterStr = combineFilter(filter, force);
+    const searchStr = combineSearch(search);
+    let totals = [];
+    try {
+      totals = await this.getAlls(searchStr, sortStr, filterStr, force);
+    } catch {}
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('categories/active');
+    return this.paginationService.getResponseObject(
+      elements,
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 
   async getAllCategories(page: number): Promise<IPaginate<Category>> {
@@ -168,6 +182,7 @@ export class CategoryService extends ServiceUtil<
     if (elements.length === 0) {
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
     }
+    this.paginationService.setPrefix('/categories/active');
     return {
       page,
       totalPages: getTotalPages(totalElements),

@@ -13,6 +13,7 @@ import {
   ApiBearerAuth,
   ApiExtraModels,
   ApiOkResponse,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
 import { IPaginate } from '../../utils/interface.util';
@@ -56,7 +57,16 @@ export class SaleController {
     return this.saleService.getActiveSales(page);
   }
 
+  @Get('current')
+  async getCurrentSale(): Promise<Sale> {
+    return this.saleService.getCurrentSale();
+  }
+
   @Get('details/:id')
+  @ApiParam({
+    name: 'id',
+    required: true,
+  })
   async getSaleDetail(
     @Param('id', new ParseUUIDPipe()) id: string,
   ): Promise<Sale> {

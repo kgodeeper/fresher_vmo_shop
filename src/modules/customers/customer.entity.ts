@@ -14,7 +14,7 @@ import { Account } from '../accounts/account.entity';
 export class Customer extends BaseEntity {
   constructor(
     fullname?: string,
-    dob?: string,
+    dob?: Date,
     gender?: Gender,
     Account?: Account,
   ) {
@@ -38,7 +38,7 @@ export class Customer extends BaseEntity {
     type: 'date',
     default: new Date(1, 1, 1990),
   })
-  dob: string;
+  dob: Date;
 
   @Column({
     nullable: true,
@@ -64,7 +64,7 @@ export class Customer extends BaseEntity {
   })
   fkAccount: Account;
 
-  updateInformation(fullname?: string, dob?: string, gender?: Gender) {
+  updateInformation(fullname?: string, dob?: Date, gender?: Gender) {
     this.fullname = fullname;
     this.dob = dob;
     this.gender = gender;

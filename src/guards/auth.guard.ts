@@ -5,7 +5,6 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { Response } from 'express';
 import { splitString } from '../utils/string.util';
 import { AppHttpException } from '../exceptions/http.exception';
 import { RedisCacheService } from '../modules/caches/cache.service';
@@ -57,7 +56,7 @@ export class AuthGuard implements CanActivate {
       request.user = username;
     } catch (error) {
       if (error instanceof AppHttpException) throw error;
-      throw new AppHttpException(HttpStatus.UNAUTHORIZED, 'Token is invalid');
+      throw new AppHttpException(HttpStatus.UNAUTHORIZED, error.message);
     }
     return true;
   }

@@ -47,6 +47,11 @@ export class SaleProduct extends BaseEntity {
   })
   discount: number;
 
+  @Column({
+    default: 0,
+  })
+  salePrice: number;
+
   @CreateDateColumn({
     default: 'now()',
   })

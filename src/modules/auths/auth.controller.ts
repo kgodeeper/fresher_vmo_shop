@@ -1,5 +1,13 @@
-import { Body, Controller, Post, Session } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Session,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBadRequestResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '../../guards/auth.guard';
 import { getAccessDto, LoginDto, RegisterDto } from './auth.dto';
 import { AuthService } from './auth.service';
 
@@ -20,7 +28,13 @@ export class AuthController {
     return this.authService.userLogin(body, session);
   }
 
-  @Post('token')
+  @UseGuards(AuthGuard)
+  @Get('')
+  async checkAuth(): Promise<void> {
+    return;
+  }
+
+  @Post('refresh')
   async getAccessToken(
     @Body() body: getAccessDto,
     @Session() session: any,

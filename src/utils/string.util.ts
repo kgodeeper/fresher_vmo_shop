@@ -51,3 +51,60 @@ export function formatName(input: string): string {
 export function convertDate(date: Date): string {
   return date.toISOString().split('T').join(' ').split('Z')[0];
 }
+
+export function combineSort(sort: string): { key: string; value: string }[] {
+  if (!sort) return [];
+  const conditions = sort.split(';');
+  const output: { key: string; value: string }[] = [];
+  conditions.forEach((item) => {
+    const itemSplited = item.split(':');
+    if (itemSplited.length > 0) {
+      if (output) {
+        if (itemSplited.length >= 2) {
+          output.push({ key: itemSplited[0], value: 'ASC' });
+        } else {
+          output.push({ key: itemSplited[0], value: 'DESC' });
+        }
+      }
+    }
+  });
+  return output;
+}
+
+export function combineFilter(
+  filter: string,
+  force?: { key: string; value: string },
+): string {
+  if (!filter) return '';
+  const conditions = filter.split(';');
+  let output = '';
+  conditions.forEach((item) => {
+    const itemSplited = item.split(':');
+    if (itemSplited.length > 0) {
+      if (!force || force.key !== itemSplited[0]) {
+        if (output) {
+          if (itemSplited.length >= 2) {
+            output += ` AND "${itemSplited[0]}" = '${itemSplited[1]}'`;
+          } else {
+          }
+        } else {
+          if (itemSplited.length >= 2) {
+            output += `"${itemSplited[0]}" = '${itemSplited[1]}'`;
+          }
+        }
+      }
+    }
+  });
+  return output;
+}
+
+export function combineSearch(search: string): string {
+  if (!search) return '';
+  const conditions = search.split(';')[0];
+  const splited = conditions.split(':');
+  let output = '';
+  if (splited.length >= 2) {
+    output = `"${splited[0]}" LIKE '%${splited[1]}%'`;
+  }
+  return output;
+}

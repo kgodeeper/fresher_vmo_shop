@@ -5,7 +5,6 @@ import { ServiceUtil } from '../../utils/service.utils';
 import { Account } from './account.entity';
 import { AccountStatus, Role } from '../../commons/enum.common';
 import { AppHttpException } from '../../exceptions/http.exception';
-import { EmailDto } from 'src/commons/dto.common';
 import { MailService } from '../mailer/mail.service';
 import {
   encrypt,
@@ -18,6 +17,7 @@ import {
   ChangeEmailRequireDto,
   ChangePasswordDto,
   ForgotPasswordDto,
+  ResendCodeDto,
 } from './account.dto';
 import { UploadService } from '../uploads/upload.service';
 import { IPagination } from '../../utils/interface.util';
@@ -43,11 +43,11 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   }
 
   async activeAccount(verifyInfo: {
-    email: string;
+    account: string;
     code: string;
   }): Promise<void> {
-    const { email, code } = verifyInfo;
-    const existAccount = await this.getInactiveAccountName(email);
+    const { account, code } = verifyInfo;
+    const existAccount = await this.getInactiveAccountName(account);
     /**
      * get verify code in redis
      * if account is exist, compare code with code in redis
@@ -67,24 +67,37 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     await this.cacheService.del(verifyKey);
   }
 
-  async resendVerifyCode(contact: EmailDto): Promise<void> {
+  async resendVerifyCode(contact: ResendCodeDto): Promise<void> {
     /**
      * find account in database
      * if account exist, check account status
      * if account status is inactive, resend verify code, then cache verify code
      */
-    const existAccount = await this.getInactiveAccountName(contact.email);
+    const existAccount = await this.getInactiveAccountName(contact.account);
+    await this.checkSpam(existAccount.username);
     await this.sendVerifyEmail(existAccount.username, existAccount.email);
   }
 
   async sendVerifyEmail(username: string, email: string): Promise<void> {
     const verifyCode = generateCode();
+    await this.checkSpam(email);
     this.mailService.verify(username, email, verifyCode);
+    await this.cacheService.set(`email:${email}:wasSend`, '1', 60);
     await this.cacheService.set(
       `email:${email}:verifyCode`,
       verifyCode,
       this.configService.get<number>('VERIFY_TTL'),
     );
+  }
+
+  async checkSpam(email: string): Promise<void> {
+    const wasSend = await this.cacheService.get(`email:${email}:wasSend`);
+    if (wasSend) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Please wait a minute to resend email',
+      );
+    }
   }
 
   async changeUsername(
@@ -341,6 +354,9 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       totalElements,
       page,
       limit,
+      search,
+      sort,
+      filter,
     );
   }
 

@@ -33,7 +33,7 @@ const inactiveAccount = new Account(
 );
 const existCustomer = new Customer(
   'supertest',
-  '2000-11-17',
+  new Date('2000-11-17'),
   Gender.MALE,
   activeAccount,
 );

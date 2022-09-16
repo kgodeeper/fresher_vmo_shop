@@ -13,8 +13,9 @@ import * as Message from '../../commons/string.common';
 
 export class ActiveAccountDto {
   @ApiProperty()
-  @IsEmail()
-  email: string;
+  @IsNotEmpty()
+  @IsString()
+  account: string;
 
   @ApiProperty()
   @Matches(Regex.VERIFY_CODE_REGEX, {
@@ -123,4 +124,10 @@ export class CreateAccountDto {
   @ApiProperty()
   @IsEnum(Role, { message: Message.ValidatorMessage.ROLE_NOT_VALID })
   role: Role;
+}
+
+export class ResendCodeDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  account: string;
 }

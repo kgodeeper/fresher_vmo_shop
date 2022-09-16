@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -21,10 +22,11 @@ import {
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiParam,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { IPaginate } from '../../utils/interface.util';
+import { IPaginate, IPagination } from '../../utils/interface.util';
 import { UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
@@ -33,6 +35,7 @@ import { RoleGuard } from '../../guards/role.guard';
 import { AddCategoryDto } from './category.dto';
 import { Category } from './category.entity';
 import { CategoryService } from './category.service';
+import { QueryResult } from 'typeorm';
 
 @Controller('categories')
 @ApiTags('Categories')
@@ -135,11 +138,41 @@ export class CategoryController {
     return this.categoryService.removeCategory(params.id);
   }
 
-  @Get('active/:page')
+  @Get('')
+  @ApiQuery({
+    name: 'page',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+  })
   async getActiveCategory(
-    @Param('page', new ParseIntPipe()) page: number,
-  ): Promise<IPaginate<Category>> {
-    return this.categoryService.getActiveCategory(page);
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('sort') sort: string,
+    @Query('filter') filter: string,
+  ): Promise<IPagination<Category>> {
+    return this.categoryService.getActiveCategory(
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 
   @ApiUnauthorizedResponse()

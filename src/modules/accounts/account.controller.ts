@@ -35,6 +35,7 @@ import {
   ChangeUsernameDto,
   CreateAccountDto,
   ForgotPasswordDto,
+  ResendCodeDto,
 } from './account.dto';
 import { AccountService } from './account.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -57,7 +58,7 @@ export class AccountController {
   }
 
   @Post('resend-verify-code')
-  async resendVerifyCode(@Body() body: EmailDto): Promise<void> {
+  async resendVerifyCode(@Body() body: ResendCodeDto): Promise<void> {
     return this.accountService.resendVerifyCode(body);
   }
 

@@ -7,11 +7,20 @@ import { AppHttpException } from '../../exceptions/http.exception';
 import { Status } from '../../commons/enum.common';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
-import { IPaginate } from '../../utils/interface.util';
+import { IPaginate, IPagination } from '../../utils/interface.util';
+import {
+  combineFilter,
+  combineSearch,
+  combineSort,
+} from '../../utils/string.util';
+import { PaginationService } from '../paginations/pagination.service';
 
 @Injectable()
 export class CouponService extends ServiceUtil<Coupon, Repository<Coupon>> {
-  constructor(private dataSource: DataSource) {
+  constructor(
+    private dataSource: DataSource,
+    private paginationService: PaginationService<Coupon>,
+  ) {
     super(dataSource.getRepository(Coupon));
   }
 
@@ -33,8 +42,8 @@ export class CouponService extends ServiceUtil<Coupon, Repository<Coupon>> {
     const coupon = new Coupon(
       code,
       Number(discount),
-      begin,
-      end,
+      new Date(begin),
+      new Date(end),
       Number(total),
     );
     await this.repository.manager.save(coupon);
@@ -120,5 +129,50 @@ export class CouponService extends ServiceUtil<Coupon, Repository<Coupon>> {
       .createQueryBuilder()
       .where('"end" > now() AND code = :code', { code })
       .getOne();
+  }
+
+  async getCurrentCoupon(
+    page: number,
+    pLimit: string,
+    search: string,
+    sort: string,
+    filter: string,
+  ): Promise<IPagination<Coupon>> {
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    const force = {
+      key: 'status',
+      value: 'active',
+    };
+    const sortStr = combineSort(sort);
+    const filterStr = combineFilter(filter, force);
+    const searchStr = combineSearch(search);
+    let totals = [];
+    try {
+      totals = await this.getAlls(
+        searchStr,
+        sortStr,
+        filterStr,
+        force,
+        undefined,
+        undefined,
+        ' now() BETWEEN "begin" AND "end"',
+      );
+    } catch (error) {
+      console.log(error);
+    }
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('categories/active');
+    return this.paginationService.getResponseObject(
+      elements,
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 }

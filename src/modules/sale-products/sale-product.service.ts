@@ -7,6 +7,13 @@ import { ProductService } from '../products/product.service';
 import { SaleService } from '../sales/sale.service';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { ProductModelService } from '../models/model.service';
+import { IPaginate, IPagination } from 'src/utils/interface.util';
+import {
+  combineFilter,
+  combineSearch,
+  combineSort,
+} from '../../utils/string.util';
+import { PaginationService } from '../paginations/pagination.service';
 
 @Injectable()
 export class SaleProductService extends ServiceUtil<
@@ -18,6 +25,7 @@ export class SaleProductService extends ServiceUtil<
     private saleService: SaleService,
     private modelService: ProductModelService,
     private productService: ProductService,
+    private paginationService: PaginationService<SaleProduct>,
   ) {
     super(dataSource.getRepository(SaleProduct));
   }
@@ -63,12 +71,66 @@ export class SaleProductService extends ServiceUtil<
         'Product already exist in this sale',
       );
     }
+    if (Number(discount) > existProduct.exportPrice) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Discount can not be greater than export price',
+      );
+    }
     const saleProduct = new SaleProduct(
       existSale,
       existProduct,
       Number(total),
       Number(discount),
     );
+    saleProduct.salePrice = existProduct.exportPrice - saleProduct.discount;
     await this.repository.save(saleProduct);
+  }
+
+  async getCurrentSaleProduct(
+    saleId: string,
+    page: number,
+    pLimit: string,
+    search: string,
+    sort: string,
+    filter: string,
+  ): Promise<IPagination<SaleProduct>> {
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    const force = {
+      key: 'fkSale',
+      value: saleId,
+    };
+    const sortStr = combineSort(sort);
+    const filterStr = combineFilter(filter, force);
+    const searchStr = combineSearch(search);
+    let totals = [];
+    try {
+      totals = await this.getAlls(
+        searchStr,
+        sortStr,
+        filterStr,
+        force,
+        'product_sale',
+        [{ key: 'product_sale.fkProduct', value: 'product' }],
+      );
+      totals = totals.map((item) => {
+        delete item.fkProduct.importPrice;
+        return item;
+      });
+    } catch {}
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('sale-products/current');
+    return this.paginationService.getResponseObject(
+      elements,
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 }
