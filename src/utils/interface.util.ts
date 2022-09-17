@@ -27,3 +27,29 @@ export interface IPagination<T> {
     lastPage: string;
   };
 }
+
+export interface getAllConditionOptions {
+  search?: string;
+  sort?: string;
+  filter?: string;
+  range?: string;
+}
+
+export interface getAllForces {
+  column: string;
+  condition: string;
+}
+
+export interface getAllForceOptions {
+  forces: getAllForces[];
+}
+
+export interface getAllJoins {
+  column: string;
+  optional: string;
+}
+
+export interface getAllJoinOptions {
+  rootName: string;
+  joinColumns: getAllJoins[];
+}

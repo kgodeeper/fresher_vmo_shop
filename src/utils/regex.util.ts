@@ -6,7 +6,7 @@ export const PASSWORD_REGEX = new RegExp(
   '^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d/@*&#]{8,}$',
 );
 
-export const USERNAME_REGEX = new RegExp('[a-zA-Z0-9]{6,}$');
+export const USERNAME_REGEX = new RegExp('[a-zA-Z0-9_-]{6,}$');
 
 export const PHONE_REGEX = new RegExp('[0-9]{10,11}$');
 

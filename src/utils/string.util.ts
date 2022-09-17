@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { delayWhen } from 'rxjs';
 import { validChar } from '../commons/string.common';
+import { getAllForceOptions, getAllForces } from './interface.util';
 
 export async function encrypt(password: string): Promise<string> {
   const { createHash } = await import('crypto');
@@ -137,4 +138,62 @@ export function combineRange(
     }
   });
   return output;
+}
+
+export function getForces(forceTargets: getAllForceOptions): string[] {
+  if (!forceTargets) return [];
+  return forceTargets.forces.map((item) => {
+    return item.column;
+  });
+}
+
+export function bindForceQuery(forceTargets: getAllForceOptions): string {
+  const forceTargetStr = forceTargets.forces.map((item) => {
+    return `"${item.column}"='${item.condition}'`;
+  });
+  return forceTargetStr.join(' AND ');
+}
+
+export function bindSearchQuery(query: string): string {
+  if (!query) return '';
+  const searches = query.split(';')[0]?.split(':');
+  if (!searches || !searches?.[1]?.trim()) return '';
+  return `"${searches[0]}" LIKE '%${searches[1]}%'`;
+}
+
+export function bindRangeQuery(query: string): string {
+  if (!query) return '';
+  return `"${query
+    .replace(/;/g, `' AND "`)
+    .replace(/:/g, `" BETWEEN '`)
+    .replace(/-/g, `' AND '`)}'`;
+}
+
+export function bindFilterQuery(
+  query: string,
+  forceTargets?: getAllForceOptions,
+): string {
+  if (!query) return '';
+  const forces = getForces(forceTargets);
+  const splited = query.split(';');
+  const reduceCondition = splited.reduce((result, item) => {
+    const splitBody = item.split(':');
+    if (!forces.includes(splitBody[0]) && splitBody[1]?.trim()) {
+      result.push(item);
+    }
+    return result;
+  }, []);
+  return '"' + reduceCondition.join(`' AND "`).replace(/:/g, `"='`) + "'";
+}
+
+export function bindSortQuery(query: string): string {
+  if (!query) return '';
+  const splited = query.split(';');
+  const reduceCondition = splited.reduce((result, item) => {
+    const splitBody = item.split(':');
+    !splitBody[1] ? (splitBody[1] = 'ASC') : (splitBody[1] = 'DESC');
+    result.push(`"${splitBody[0]}" ${splitBody[1]}`);
+    return result;
+  }, []);
+  return reduceCondition.join(' AND ');
 }

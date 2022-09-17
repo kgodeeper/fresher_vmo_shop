@@ -1,5 +1,18 @@
 import { Customer } from 'src/modules/customers/customer.entity';
-import { BaseEntity, Entity, Repository } from 'typeorm';
+import { BaseEntity, Entity, QueryResult, Repository } from 'typeorm';
+import {
+  getAllConditionOptions,
+  getAllForceOptions,
+  getAllForces,
+  getAllJoinOptions,
+} from './interface.util';
+import {
+  bindFilterQuery,
+  bindForceQuery,
+  bindRangeQuery,
+  bindSearchQuery,
+  bindSortQuery,
+} from './string.util';
 
 export class ServiceUtil<T extends BaseEntity, R extends Repository<T>> {
   protected repository: R;
@@ -57,52 +70,37 @@ export class ServiceUtil<T extends BaseEntity, R extends Repository<T>> {
   }
 
   async getAlls(
-    search: string,
-    sort: { key: string; value: string }[],
-    filter: string,
-    force?: { key: string; value: string },
-    name?: string,
-    join?: { key: string; value: string }[],
+    search?: string,
+    sort?: string,
+    filter?: string,
+    force?: getAllForceOptions,
+    join?: getAllJoinOptions,
     range?: string,
   ): Promise<T[]> {
-    let isAnd = '';
-    if (search || filter || range) isAnd = ' AND ';
-    let whereCondition = '';
-    if (force?.key) {
-      whereCondition += `"${force.key}" = '${force.value}' ${isAnd}`;
-    }
-    if (search) {
-      whereCondition += search;
-      if (filter) whereCondition += ` AND ${filter}`;
-      if (range) whereCondition += ` AND ${range}`;
-    } else {
-      if (filter) {
-        if (range) whereCondition += `${filter} AND ${range}`;
-      } else if (range) {
-        whereCondition += `${range}`;
-      }
-    }
-    const repoWhere = await this.repository.createQueryBuilder(name);
-    repoWhere.where(`${whereCondition}`);
-    for (let i = 0; i < sort.length; i++) {
-      if (i === 0) {
-        await repoWhere.orderBy(
-          `"${sort[i].key}"`,
-          sort[i].value as 'ASC' | 'DESC',
-        );
-      } else {
-        await repoWhere.addOrderBy(
-          `"${sort[i].key}"`,
-          sort[i].value as 'ASC' | 'DESC',
-        );
-      }
-    }
+    const forceStr = bindForceQuery(force);
+    const searchStr = bindSearchQuery(search);
+    const filterStr = bindFilterQuery(filter, force);
+    const rangeStr = bindRangeQuery(range);
+    const sortStr = bindSortQuery(sort);
+    const conditions = [forceStr, searchStr, filterStr, rangeStr];
+    const available = conditions.reduce((result, item) => {
+      if (item) result.push(item);
+      return result;
+    }, []);
+    const whereString = `${available.join(' AND ')} ${
+      sortStr ? `ORDER BY ${sortStr}` : ''
+    }`;
+    const repoWhere = await this.repository
+      .createQueryBuilder(join?.rootName)
+      .where(whereString);
     if (join) {
-      for (let i = 0; i < join.length; i++) {
-        repoWhere.leftJoinAndSelect(join[i].key, join[i].value);
+      for (let i = 0; i < join.joinColumns.length; i++) {
+        repoWhere.leftJoinAndSelect(
+          join.joinColumns[i].column,
+          join[i].joinColumns.optional,
+        );
       }
     }
-    console.log(repoWhere.getQuery());
     return repoWhere.getMany();
   }
 }
