@@ -1,14 +1,12 @@
-import { HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { LoginDto, RegisterDto } from '../auths/auth.dto';
 import { AccountService } from '../accounts/account.service';
 import { Account } from '../accounts/account.entity';
 import { RedisCacheService } from '../caches/cache.service';
-import { MailService } from '../mailer/mail.service';
 import { encrypt, splitString } from '../../utils/string.util';
 import { ConfigService } from '@nestjs/config';
 import { AppJwtService } from '../jwts/jwt.service';
-import { AccountStatus } from '../../commons/enum.common';
 
 @Injectable()
 export class AuthService {
@@ -154,5 +152,13 @@ export class AuthService {
       if (error instanceof AppHttpException) throw error;
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Invalid token');
     }
+  }
+
+  async logout(username: string, sessionId: string): Promise<void> {
+    const existAccount = await this.accountService.getActiveAccountName(
+      username,
+    );
+    const cachedAccessPattern = `user:${existAccount.username}:*:${sessionId}`;
+    await this.cacheService.destroyAllKeys(cachedAccessPattern);
   }
 }

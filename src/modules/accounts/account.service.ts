@@ -357,6 +357,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       search,
       sort,
       filter,
+      null,
     );
   }
 

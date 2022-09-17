@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { totalmem } from 'os';
+import { QueryResult } from 'typeorm';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { IPagination } from '../../utils/interface.util';
 import { getTotalPages } from '../../utils/number.util';
@@ -22,12 +23,14 @@ export class PaginationService<T> {
     search: string,
     sort: string,
     filter: string,
+    range: string,
   ): Promise<IPagination<T>> {
     let firstPage, lastPage, nextPage, previousPage;
     let queryString = `&limit=${limit}`;
     if (search) queryString += `&search=${search}`;
     if (sort) queryString += `&sort=${sort}`;
     if (filter) queryString += `&filter=${filter}`;
+    if (range) queryString += `&range=${range}`;
     if (totalItems == 0) {
       firstPage = lastPage = nextPage = previousPage = null;
     } else {

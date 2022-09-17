@@ -131,6 +131,7 @@ export class SaleProductService extends ServiceUtil<
       search,
       sort,
       filter,
+      null,
     );
   }
 }

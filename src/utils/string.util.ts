@@ -102,9 +102,39 @@ export function combineSearch(search: string): string {
   if (!search) return '';
   const conditions = search.split(';')[0];
   const splited = conditions.split(':');
+  if (!splited[1]) return '';
   let output = '';
   if (splited.length >= 2) {
     output = `"${splited[0]}" LIKE '%${splited[1]}%'`;
   }
+  return output;
+}
+
+export function combineRange(
+  range: string,
+  force?: { key: string; value: string },
+): string {
+  if (!range) return '';
+  const conditions = range.split(';');
+  let output = '';
+  conditions.forEach((item) => {
+    const itemSplited = item.split(':');
+    if (itemSplited.length > 0) {
+      if (!force || force.key !== itemSplited[0]) {
+        if (output) {
+          if (itemSplited.length >= 2) {
+            const ranges = itemSplited[1].split('-');
+            output += ` AND "${itemSplited[0]}" BETWEEN '${ranges[0]}' AND '${ranges[1]}'`;
+          } else {
+          }
+        } else {
+          if (itemSplited.length >= 2) {
+            const ranges = itemSplited[1].split('-');
+            output += `"${itemSplited[0]}" BETWEEN '${ranges[0]}' AND '${ranges[1]}'`;
+          }
+        }
+      }
+    }
+  });
   return output;
 }

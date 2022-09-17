@@ -8,15 +8,20 @@ import { Product } from './product.entity';
 import { CategoryService } from '../categories/category.service';
 import { RedisCacheService } from '../caches/cache.service';
 import { UploadService } from '../uploads/upload.service';
-import { getPublicId } from '../../utils/string.util';
+import {
+  combineFilter,
+  combineRange,
+  combineSearch,
+  combineSort,
+  getPublicId,
+} from '../../utils/string.util';
 import { Status } from '../../commons/enum.common';
 import { PhotoService } from '../photos/photo.service';
-import { IPaginate } from '../../utils/interface.util';
+import { IPaginate, IPagination } from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
-import { last } from 'rxjs';
-import { Sale } from '../sales/sale.entity';
 import { SaleProduct } from '../sale-products/sale-product.entity';
+import { PaginationService } from '../paginations/pagination.service';
 
 @Injectable()
 export class ProductService extends ServiceUtil<Product, Repository<Product>> {
@@ -27,6 +32,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     private cacheService: RedisCacheService,
     private uploadService: UploadService,
     private suplierService: SuplierService,
+    private paginationService: PaginationService<Product>,
   ) {
     super(dataSource.getRepository(Product));
   }
@@ -253,26 +259,61 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     };
   }
 
-  async getAllActiveProducts(page: number): Promise<IPaginate<Product>> {
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Page number not found',
-      );
-    }
-    const totalElements = Number(
-      await this.cacheService.get('shop:active:products'),
-    );
-    const elements = await this.getActiveProducts(page);
-    if (elements.length === 0) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, `Out of range`);
-    }
-    return {
-      page,
-      totalPages: getTotalPages(totalElements),
-      totalElements,
-      elements,
+  async getAllActiveProducts(
+    page: number,
+    pLimit: string,
+    search: string,
+    sort: string,
+    filter: string,
+    range: string,
+  ): Promise<IPagination<Product>> {
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    const force = {
+      key: 'status',
+      value: 'active',
     };
+    const sortStr = combineSort(sort);
+    const filterStr = combineFilter(filter, force);
+    const searchStr = combineSearch(search);
+    const rangeStr = combineRange(range, force);
+    let totals = [];
+    try {
+      totals = await this.getAlls(
+        searchStr,
+        sortStr,
+        filterStr,
+        force,
+        'product',
+        [
+          { key: 'product.sales', value: 'sales' },
+          { key: 'sales.fkSale', value: 'fkSake' },
+        ],
+        rangeStr,
+      );
+    } catch (error) {
+      console.log(error);
+    }
+    totals = totals.map((item) => {
+      item.sales = item.sales.filter((elm) => {
+        return new Date(elm.fkSale.end) > new Date();
+      });
+      return item;
+    });
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('products/active');
+    return this.paginationService.getResponseObject(
+      elements,
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+      range,
+    );
   }
 
   async searchProduct(key: string, page: number): Promise<IPaginate<Product>> {

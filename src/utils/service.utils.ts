@@ -102,6 +102,7 @@ export class ServiceUtil<T extends BaseEntity, R extends Repository<T>> {
         repoWhere.leftJoinAndSelect(join[i].key, join[i].value);
       }
     }
+    console.log(repoWhere.getQuery());
     return repoWhere.getMany();
   }
 }

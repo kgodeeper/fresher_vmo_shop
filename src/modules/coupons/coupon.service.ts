@@ -173,6 +173,7 @@ export class CouponService extends ServiceUtil<Coupon, Repository<Coupon>> {
       search,
       sort,
       filter,
+      null,
     );
   }
 }

@@ -157,6 +157,7 @@ export class CategoryService extends ServiceUtil<
       search,
       sort,
       filter,
+      null,
     );
   }
 

@@ -25,7 +25,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { IPaginate } from 'src/utils/interface.util';
+import { IPaginate, IPagination } from 'src/utils/interface.util';
 import { UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
@@ -168,11 +168,44 @@ export class ProductController {
     return this.productService.getAllProducts(page);
   }
 
-  @Get('active/:page')
+  @Get('active')
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'page',
+  })
+  @ApiQuery({
+    name: 'limit',
+  })
+  @ApiQuery({
+    name: 'range',
+  })
   async getAllActiveProducts(
-    @Param('page', new ParseIntPipe()) page: number,
-  ): Promise<IPaginate<Product>> {
-    return this.productService.getAllActiveProducts(page);
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('sort') sort: string,
+    @Query('filter') filter: string,
+    @Query('range') range: string,
+  ): Promise<IPagination<Product>> {
+    return this.productService.getAllActiveProducts(
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+      range,
+    );
   }
 
   @ApiQuery({
@@ -201,7 +234,7 @@ export class ProductController {
     );
   }
 
-  @Get('details/:id')
+  @Get('detail/:id')
   async getDetailProduct(@Param() params: UuidDto): Promise<Product> {
     return this.productService.getDetailProduct(params.id);
   }
