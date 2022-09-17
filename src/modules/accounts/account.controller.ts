@@ -6,6 +6,7 @@ import {
   Patch,
   Post,
   Query,
+  Session,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -36,6 +37,7 @@ import {
   CreateAccountDto,
   ForgotPasswordDto,
   ResendCodeDto,
+  UpdateAccountDto,
 } from './account.dto';
 import { AccountService } from './account.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -55,6 +57,17 @@ export class AccountController {
   @Patch('active')
   async activeAccount(@Body() body: ActiveAccountDto): Promise<void> {
     return this.accountService.activeAccount(body);
+  }
+
+  @ApiBearerAuth()
+  @Patch()
+  @UseGuards(AuthGuard)
+  async updateAccount(
+    @Body() body: UpdateAccountDto,
+    @UserBound() username,
+    @Session() session,
+  ): Promise<void> {
+    return this.accountService.updateAccount(body, username);
   }
 
   @Post('resend-verify-code')

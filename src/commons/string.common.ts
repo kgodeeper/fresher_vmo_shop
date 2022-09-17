@@ -1,7 +1,5 @@
-import { ConfigService } from '@nestjs/config';
-
 export const validChar =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/@*&#';
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
 
 export const ValidatorMessage = {
   USERNAME_NOT_VALID:

@@ -7,7 +7,7 @@ import {
   BaseEntity,
   BeforeInsert,
 } from 'typeorm';
-import { Role, AccountStatus } from '../../commons/enum.common';
+import { Role, AccountStatus, LoginMethod } from '../../commons/enum.common';
 import { encrypt } from '../..//utils/string.util';
 
 @Entity()
@@ -40,6 +40,13 @@ export class Account extends BaseEntity {
 
   @Column()
   email: string;
+
+  @Column({
+    type: 'enum',
+    enum: LoginMethod,
+    default: LoginMethod.BOTH,
+  })
+  loginMethod: LoginMethod;
 
   @Column({
     type: 'enum',

@@ -3,7 +3,7 @@ import { DataSource, Repository } from 'typeorm';
 import { RedisCacheService } from '../caches/cache.service';
 import { ServiceUtil } from '../../utils/service.utils';
 import { Account } from './account.entity';
-import { AccountStatus, Role } from '../../commons/enum.common';
+import { AccountStatus, LoginMethod, Role } from '../../commons/enum.common';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { MailService } from '../mailer/mail.service';
 import {
@@ -18,6 +18,7 @@ import {
   ChangePasswordDto,
   ForgotPasswordDto,
   ResendCodeDto,
+  UpdateAccountDto,
 } from './account.dto';
 import { UploadService } from '../uploads/upload.service';
 import { IPagination } from '../../utils/interface.util';
@@ -164,6 +165,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
      * then, check old password
      */
     const existAccount = await this.getActiveAccountName(username);
+    this.requireBothLogin(existAccount);
     const password = await encrypt(passwordInfo.oldPassword);
     if (password !== existAccount.password) {
       throw new AppHttpException(
@@ -209,7 +211,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     /**
      * check email already exist ?
      */
-    const accountIsExist = await this.checkAccountIsExist(emailInfo.newEmail);
+    const accountIsExist = await this.checkEmailIsExist(emailInfo.newEmail);
     if (accountIsExist) {
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Email already exist');
     }
@@ -265,6 +267,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
 
   async requireForgotPassword(email: string): Promise<void> {
     const existAccount = await this.getActiveAccountName(email);
+    this.requireBothLogin(existAccount);
     const verifyCode = generateCode();
     await this.mailService.forgotPassword(existAccount.email, verifyCode);
     /**
@@ -280,6 +283,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   async forgotPassword(forgotInfo: ForgotPasswordDto): Promise<void> {
     const { email, code, newPassword } = forgotInfo;
     const existAccount = await this.getActiveAccountName(email);
+    this.requireBothLogin(existAccount);
     const verifyCode = await this.cacheService.get(
       `email:${email}:forgotPasswordCode`,
     );
@@ -545,5 +549,47 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
   async checkEmailIsExist(email: string): Promise<boolean> {
     const existAccount = await this.findOneByCondition({ email });
     return !!existAccount;
+  }
+
+  async saveAccount(account: Account): Promise<void> {
+    this.repository.save(account);
+  }
+
+  requireBothLogin(account: Account): void {
+    if (account.loginMethod !== LoginMethod.BOTH) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'You was logged in by email, to use this feature, you need update your username and password',
+      );
+    }
+  }
+
+  async updateAccount(
+    accountInfo: UpdateAccountDto,
+    username: string,
+  ): Promise<void> {
+    const existAccount = await this.getActiveAccountName(username);
+    const oldName = existAccount.username;
+    if (existAccount.loginMethod !== LoginMethod.EMAIL) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'You already update account before',
+      );
+    }
+    const accountIsExist = await this.checkAccountIsExist(accountInfo.username);
+    if (accountIsExist) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Account with username ${accountInfo.username} already exist`,
+      );
+    }
+    existAccount.username = accountInfo.username;
+    existAccount.password = await encrypt(accountInfo.password);
+    existAccount.loginMethod = LoginMethod.BOTH;
+    await this.saveAccount(existAccount);
+    /**
+     * remove all cached
+     */
+    await this.cacheService.destroyAllKeys(`user:${oldName}:*`);
   }
 }

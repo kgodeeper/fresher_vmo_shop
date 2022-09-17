@@ -10,6 +10,7 @@ import {
 import { AccountStatus, Role } from '../../commons/enum.common';
 import * as Regex from '../../utils/regex.util';
 import * as Message from '../../commons/string.common';
+import { Tracing } from 'trace_events';
 
 export class ActiveAccountDto {
   @ApiProperty()
@@ -70,6 +71,20 @@ export class ChangeEmailDto {
     message: Message.ValidatorMessage.VERIFY_CODE_NOT_VALID,
   })
   code: string;
+}
+
+export class UpdateAccountDto {
+  @ApiProperty()
+  @Matches(Regex.USERNAME_REGEX, {
+    message: Message.ValidatorMessage.USERNAME_NOT_VALID,
+  })
+  username: string;
+
+  @ApiProperty()
+  @Matches(Regex.PASSWORD_REGEX, {
+    message: Message.ValidatorMessage.PASSWORD_NOT_VALID,
+  })
+  password: string;
 }
 
 export class ForgotPasswordDto {

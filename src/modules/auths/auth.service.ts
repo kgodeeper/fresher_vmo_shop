@@ -4,9 +4,12 @@ import { LoginDto, RegisterDto } from '../auths/auth.dto';
 import { AccountService } from '../accounts/account.service';
 import { Account } from '../accounts/account.entity';
 import { RedisCacheService } from '../caches/cache.service';
-import { encrypt, splitString } from '../../utils/string.util';
+import { encrypt, randomString, splitString } from '../../utils/string.util';
 import { ConfigService } from '@nestjs/config';
 import { AppJwtService } from '../jwts/jwt.service';
+import { AccountStatus, LoginMethod, Role } from '../../commons/enum.common';
+import { generateKey } from 'crypto';
+import { generateString } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {
@@ -72,6 +75,16 @@ export class AuthService {
      * Cache role
      * if refreshToken token already cached, get it and return, else generate new refreshToken and cache it
      */
+    return this.generateAuthToken(existAccount, session);
+  }
+
+  async generateAuthToken(
+    existAccount: Account,
+    session: any,
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+  }> {
     const accessToken = await this.jwtService.signToken(
       { username: existAccount.username },
       this.configService.get<number>('ACCESS_EXPIRES'),
@@ -160,5 +173,30 @@ export class AuthService {
     );
     const cachedAccessPattern = `user:${existAccount.username}:*:${sessionId}`;
     await this.cacheService.destroyAllKeys(cachedAccessPattern);
+  }
+
+  async google(
+    email: string,
+    session: any,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const isExistEmail = await this.accountService.checkEmailIsExist(email);
+    if (isExistEmail) {
+      const existAccount = await this.accountService.getActiveAccountName(
+        email,
+      );
+      return this.generateAuthToken(existAccount, session);
+    } else {
+      const username = randomString(8);
+      const account = new Account(
+        username,
+        '-1',
+        email,
+        Role.CUSTOMER,
+        AccountStatus.ACTIVE,
+      );
+      account.loginMethod = LoginMethod.EMAIL;
+      await this.accountService.saveAccount(account);
+      return this.generateAuthToken(account, session);
+    }
   }
 }

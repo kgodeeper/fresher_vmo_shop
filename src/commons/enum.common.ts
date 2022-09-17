@@ -39,3 +39,8 @@ export enum OrderStatus {
   COMPLETE = 'complete',
   CANCEL = 'cancel',
 }
+
+export enum LoginMethod {
+  EMAIL = 'email',
+  BOTH = 'both',
+}

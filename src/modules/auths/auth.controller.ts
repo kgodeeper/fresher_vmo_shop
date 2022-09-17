@@ -1,4 +1,13 @@
-import { Body, Controller, Post, Session, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Req,
+  Session,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -6,10 +15,12 @@ import {
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { GoogleAuthGuard } from '../../guards/google-auth.guard';
 import { UserBound } from '../../decorators/bind-user.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
 import { getAccessDto, LoginDto, RegisterDto } from './auth.dto';
 import { AuthService } from './auth.service';
+import { EmailBound } from '../../decorators/bind-email.decorator';
 
 @Controller('auths')
 @ApiTags('Auths')
@@ -48,5 +59,12 @@ export class AuthController {
     @Session() session: any,
   ): Promise<void> {
     return this.authService.logout(username, session.sessionId);
+  }
+
+  @UseGuards(GoogleAuthGuard)
+  @ApiBearerAuth()
+  @Get('google')
+  async google(@EmailBound() email: string, @Session() session): Promise<any> {
+    return this.authService.google(email, session);
   }
 }
