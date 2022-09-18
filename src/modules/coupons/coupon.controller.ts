@@ -44,30 +44,11 @@ export class CouponController {
     return this.couponService.addCoupon(body);
   }
 
-  @ApiUnauthorizedResponse()
-  @ApiForbiddenResponse()
-  @ApiBearerAuth()
-  @Delete(':id')
-  @UseGuards(AuthGuard, RoleGuard)
-  @RequireRoles(Role.STAFF, Role.SUPERUSER)
-  async removeCoupon(
-    @Param('id', new ParseUUIDPipe()) id: string,
-  ): Promise<void> {
-    return this.couponService.removeCoupon(id);
-  }
-
   @Get('all/:page')
   async getAllCoupon(
     @Param('page', new ParseIntPipe()) page: number,
   ): Promise<IPaginate<Coupon>> {
     return this.couponService.getAllCoupons(page);
-  }
-
-  @Get('active/:page')
-  async getAllActiveCoupon(
-    @Param('page', new ParseIntPipe()) page: number,
-  ): Promise<IPaginate<Coupon>> {
-    return this.couponService.getAllActiveCoupon(page);
   }
 
   @Get('current')
@@ -87,6 +68,7 @@ export class CouponController {
     name: 'page',
   })
   @ApiQuery({
+    required: false,
     name: 'limit',
   })
   async getCurrentCoupon(

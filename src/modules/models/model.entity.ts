@@ -15,20 +15,14 @@ import { Product } from '../products/product.entity';
 export class ProductModel extends BaseEntity {
   constructor(
     memory: string,
-    screen: string,
-    os: string,
     color: string,
     quantityInStock: number,
-    battery: string,
     fkProduct: Product,
   ) {
     super();
     this.memory = memory;
-    this.screen = screen;
-    this.os = os;
     this.color = color;
     this.quantityInStock = quantityInStock;
-    this.battery = battery;
     this.fkProduct = fkProduct;
   }
 
@@ -39,19 +33,10 @@ export class ProductModel extends BaseEntity {
   memory: string;
 
   @Column()
-  screen: string;
-
-  @Column()
-  os: string;
-
-  @Column()
   color: string;
 
   @Column()
   quantityInStock: number;
-
-  @Column()
-  battery: string;
 
   @Column({
     type: 'enum',
@@ -75,4 +60,10 @@ export class ProductModel extends BaseEntity {
     name: 'fkProduct',
   })
   fkProduct: Product;
+
+  updateModel(color?: string, memory?: string, quantityInStock?: number) {
+    this.color = color;
+    this.quantityInStock = quantityInStock;
+    this.memory = memory;
+  }
 }

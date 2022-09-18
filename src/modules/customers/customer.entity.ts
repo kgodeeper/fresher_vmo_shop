@@ -36,7 +36,7 @@ export class Customer extends BaseEntity {
 
   @Column({
     type: 'date',
-    default: new Date(1, 1, 1990),
+    default: new Date(2000, 1, 1),
   })
   dob: Date;
 

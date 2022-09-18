@@ -24,6 +24,7 @@ import EmailSchedulingService from './modules/schedules/email-scheduling.service
 import { MailModule } from './modules/mailer/mail.module';
 import { CacheSchedulingService } from './modules/schedules/cache-scheduling.service';
 import { PaymentModule } from './modules/payments/payment.module';
+import { GoogleAuthModule } from './modules/google-auths/google-auth.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { PaymentModule } from './modules/payments/payment.module';
     OrderModule,
     SaleModule,
     PaymentModule,
+    GoogleAuthModule,
   ],
   controllers: [],
   providers: [EmailSchedulingService, CacheSchedulingService],

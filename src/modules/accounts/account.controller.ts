@@ -32,12 +32,13 @@ import {
   ChangeEmailRequireDto,
   ChangePasswordDto,
   ChangeRoleDto,
-  ChangeStatusDto,
+  StatusDto,
   ChangeUsernameDto,
   CreateAccountDto,
   ForgotPasswordDto,
   ResendCodeDto,
   UpdateAccountDto,
+  ForgotPasswordRequireDto,
 } from './account.dto';
 import { AccountService } from './account.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -54,12 +55,14 @@ import { Role } from '../../commons/enum.common';
 export class AccountController {
   constructor(private accountService: AccountService) {}
 
+  @ApiConsumes('application/x-www-form-urlencoded')
   @Patch('active')
   async activeAccount(@Body() body: ActiveAccountDto): Promise<void> {
     return this.accountService.activeAccount(body);
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @Patch()
   @UseGuards(AuthGuard)
   async updateAccount(
@@ -70,12 +73,14 @@ export class AccountController {
     return this.accountService.updateAccount(body, username);
   }
 
+  @ApiConsumes('application/x-www-form-urlencoded')
   @Post('resend-verify-code')
   async resendVerifyCode(@Body() body: ResendCodeDto): Promise<void> {
     return this.accountService.resendVerifyCode(body);
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Patch('username')
@@ -92,6 +97,7 @@ export class AccountController {
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Patch('password')
@@ -104,6 +110,7 @@ export class AccountController {
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Post('change-email-require')
@@ -116,6 +123,7 @@ export class AccountController {
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Patch('email')
@@ -127,11 +135,15 @@ export class AccountController {
     return this.accountService.changeEmail(body.code, username);
   }
 
+  @ApiConsumes('application/x-www-form-urlencoded')
   @Post('forgot-password-require')
-  async requireForgotPassword(@Body() body: EmailDto): Promise<void> {
-    return this.accountService.requireForgotPassword(body.email);
+  async requireForgotPassword(
+    @Body() body: ForgotPasswordRequireDto,
+  ): Promise<void> {
+    return this.accountService.requireForgotPassword(body.account);
   }
 
+  @ApiConsumes('application/x-www-form-urlencoded')
   @Patch('forgot-password')
   async forgotPassword(@Body() body: ForgotPasswordDto): Promise<void> {
     return this.accountService.forgotPassword(body);
@@ -163,10 +175,10 @@ export class AccountController {
   @ApiForbiddenResponse()
   @Get('/all')
   @ApiQuery({ name: 'page', type: 'number' })
-  @ApiQuery({ name: 'limit', type: 'number' })
-  @ApiQuery({ name: 'search', type: 'string' })
-  @ApiQuery({ name: 'sort', type: 'string' })
-  @ApiQuery({ name: 'filter', type: 'string' })
+  @ApiQuery({ name: 'limit', type: 'number', required: false })
+  @ApiQuery({ name: 'search', type: 'string', required: false })
+  @ApiQuery({ name: 'sort', type: 'string', required: false })
+  @ApiQuery({ name: 'filter', type: 'string', required: false })
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
   @UseGuards(AuthGuard, RoleGuard)
   async getAllAccounts(
@@ -178,7 +190,7 @@ export class AccountController {
   ): Promise<IPagination<Account>> {
     return this.accountService.getAllAccounts(
       page,
-      Number(limit),
+      limit,
       search,
       sort,
       filter,
@@ -186,13 +198,15 @@ export class AccountController {
   }
 
   @ApiBearerAuth()
+  @ApiExtraModels(StatusDto)
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Patch('status')
   @RequireRoles(Role.SUPERUSER)
   @UseGuards(AuthGuard, RoleGuard)
   async changeAccountStatus(
-    @Body() body: ChangeStatusDto,
+    @Body() body: StatusDto,
     @UserBound() username: string,
   ): Promise<void> {
     return this.accountService.changeStatus(
@@ -203,6 +217,7 @@ export class AccountController {
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Patch('role')
@@ -220,6 +235,7 @@ export class AccountController {
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Post('create')
@@ -229,9 +245,10 @@ export class AccountController {
     return this.accountService.superuserCreateAccount(body.email, body.role);
   }
 
+  @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiBearerAuth()
   @Get('information')
   @UseGuards(AuthGuard)
   async getAccountInformation(@UserBound() username: string): Promise<Account> {

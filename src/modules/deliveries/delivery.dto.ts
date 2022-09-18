@@ -36,7 +36,9 @@ export class UpdateDeliveryDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  @Matches(Regex.UUID_REGEX)
+  @Matches(Regex.UUID_REGEX, {
+    message: Message.ValidatorMessage.UUID_NOT_VALID,
+  })
   deliveryID: string;
 
   @ApiProperty({
@@ -44,7 +46,9 @@ export class UpdateDeliveryDto {
   })
   @IsOptional()
   @IsString()
-  @Matches(Regex.PHONE_REGEX)
+  @Matches(Regex.PHONE_REGEX, {
+    message: Message.ValidatorMessage.PHONE_NOT_VALID,
+  })
   phone: string;
 
   @ApiProperty({
@@ -52,7 +56,9 @@ export class UpdateDeliveryDto {
   })
   @IsOptional()
   @IsString()
-  @Matches(Regex.FULLNAME_REGEX)
+  @Matches(Regex.FULLNAME_REGEX, {
+    message: Message.ValidatorMessage.FULLNAME_NOT_VALID,
+  })
   receiver: string;
 
   @ApiProperty({

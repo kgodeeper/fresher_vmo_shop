@@ -7,8 +7,12 @@ import { CustomerCoupon } from './customer-coupon.entity';
 import { CouponService } from '../coupons/coupon.service';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { Customer } from '../customers/customer.entity';
-import { Gender } from '../../commons/enum.common';
-import { IPagination } from 'src/utils/interface.util';
+import { Gender, Status } from '../../commons/enum.common';
+import {
+  getAllForceOptions,
+  getAllJoinOptions,
+  IPagination,
+} from 'src/utils/interface.util';
 import {
   combineFilter,
   combineRange,
@@ -115,33 +119,32 @@ export class CustomerCouponService extends ServiceUtil<
     if (page <= 0) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
-    const force = {
-      key: 'status',
-      value: 'active',
+    const force: getAllForceOptions = {
+      forces: [
+        {
+          column: 'status',
+          condition: Status.ACTIVE,
+        },
+      ],
     };
-    const sortStr = combineSort(sort);
-    const filterStr = combineFilter(filter, force);
-    const searchStr = combineSearch(search);
+    const join: getAllJoinOptions = {
+      rootName: 'customer_coupon',
+      joinColumns: [
+        {
+          column: 'customer_coupon.fkCoupon',
+          optional: 'coupon',
+        },
+      ],
+    };
     let totals = [];
     try {
-      totals = await this.getAlls(
-        searchStr,
-        sortStr,
-        filterStr,
-        force,
-        'customer_coupon',
-        [{ key: 'customer_coupon.fkCoupon', value: 'coupons' }],
-      );
-    } catch {}
-    totals = totals.map((item) => {
-      item.sales = item.sales.filter((elm) => {
-        return new Date(elm.fkSale.end) > new Date();
-      });
-      return item;
-    });
+      totals = await this.getAlls(search, sort, filter, force, join);
+    } catch (error) {
+      console.log(error);
+    }
     const total = totals.length;
     const elements = totals.splice((page - 1) * limit, page * limit);
-    this.paginationService.setPrefix('products/active');
+    this.paginationService.setPrefix('customer-coupons/own');
     return this.paginationService.getResponseObject(
       elements,
       total,

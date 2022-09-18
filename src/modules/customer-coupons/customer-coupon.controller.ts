@@ -34,7 +34,7 @@ export class CustomerCouponController {
   }
 
   @ApiBearerAuth()
-  @Get('active')
+  @Get('own')
   @ApiQuery({
     name: 'sort',
     required: false,

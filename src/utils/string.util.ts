@@ -148,6 +148,7 @@ export function getForces(forceTargets: getAllForceOptions): string[] {
 }
 
 export function bindForceQuery(forceTargets: getAllForceOptions): string {
+  if (!forceTargets) return '';
   const forceTargetStr = forceTargets.forces.map((item) => {
     return `"${item.column}"='${item.condition}'`;
   });

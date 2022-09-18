@@ -2,9 +2,7 @@ export const UUID_REGEX = new RegExp(
   '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
 );
 
-export const PASSWORD_REGEX = new RegExp(
-  '^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d/@*&#]{8,}$',
-);
+export const PASSWORD_REGEX = new RegExp('^[a-zA-Z\\d/@*&#]{8,}$');
 
 export const USERNAME_REGEX = new RegExp('[a-zA-Z0-9_-]{6,}$');
 

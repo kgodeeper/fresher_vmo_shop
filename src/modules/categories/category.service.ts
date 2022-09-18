@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { Status } from '../../commons/enum.common';
 import { ServiceUtil } from '../../utils/service.utils';
 import { DataSource, Repository } from 'typeorm';
@@ -7,16 +7,27 @@ import { Category } from './category.entity';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { UploadService } from '../uploads/upload.service';
 import {
+  bindFilterQuery,
+  bindForceQuery,
+  bindSearchQuery,
+  bindSortQuery,
   combineFilter,
   combineSearch,
   combineSort,
   getPublicId,
 } from '../../utils/string.util';
-import { IPaginate, IPagination } from '../../utils/interface.util';
+import {
+  getAllForceOptions,
+  getAllForces,
+  getAllJoinOptions,
+  IPaginate,
+  IPagination,
+} from '../../utils/interface.util';
 import { RedisCacheService } from '../caches/cache.service';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
 import { PaginationService } from '../paginations/pagination.service';
+import { ProductService } from '../products/product.service';
 
 @Injectable()
 export class CategoryService extends ServiceUtil<
@@ -25,6 +36,8 @@ export class CategoryService extends ServiceUtil<
 > {
   constructor(
     private dataSource: DataSource,
+    @Inject(forwardRef(() => ProductService))
+    private productService: ProductService,
     private cacheService: RedisCacheService,
     private uploadSerivice: UploadService,
     private paginationService: PaginationService<Category>,
@@ -39,7 +52,6 @@ export class CategoryService extends ServiceUtil<
     // by default, position of new category is largest position of active category in db
     const maxPosition = await this.getMaxPosition();
     const lastPosition = Number(maxPosition?.maxPos) + 1;
-    console.log(lastPosition);
     const existCategory = await this.getExistCategory(categoryInfo.name);
     if (existCategory) {
       throw new AppHttpException(
@@ -113,12 +125,20 @@ export class CategoryService extends ServiceUtil<
     await destinationCategory.save();
   }
 
-  async removeCategory(id: string): Promise<void> {
-    const existCategory = await this.checkCategoryById(id);
-    /**
-     * if category is exist and category status is active, change status to inactive
-     */
-    existCategory.status = Status.INACTIVE;
+  async changeCategoryStatus(id: string): Promise<void> {
+    const existCategory = await this.getCategory(id);
+    if (existCategory.status === Status.ACTIVE) {
+      const canChange = !(await this.productService.checkProductInCategory(id));
+      if (!canChange) {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          'Cant change status when category have active product',
+        );
+      }
+      existCategory.status = Status.INACTIVE;
+    } else {
+      existCategory.status = Status.ACTIVE;
+    }
     await existCategory.save();
   }
 
@@ -135,16 +155,17 @@ export class CategoryService extends ServiceUtil<
     if (page <= 0) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
-    const force = {
-      key: 'status',
-      value: 'active',
+    const forceTargets: getAllForceOptions = {
+      forces: [
+        {
+          column: 'status',
+          condition: 'active',
+        },
+      ],
     };
-    const sortStr = combineSort(sort);
-    const filterStr = combineFilter(filter, force);
-    const searchStr = combineSearch(search);
     let totals = [];
     try {
-      totals = await this.getAlls(searchStr, sortStr, filterStr, force);
+      totals = await this.getAlls(search, sort, filter, forceTargets);
     } catch {}
     const total = totals.length;
     const elements = totals.splice((page - 1) * limit, page * limit);
@@ -161,35 +182,36 @@ export class CategoryService extends ServiceUtil<
     );
   }
 
-  async getAllCategories(page: number): Promise<IPaginate<Category>> {
+  async getAllCategories(
+    page: number,
+    pLimit?: string,
+    search?: string,
+    sort?: string,
+    filter?: string,
+  ): Promise<IPagination<Category>> {
     /**
      * check valid page
      */
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Page number is not valid',
-      );
-    }
-    const totalElements = Number(
-      await this.cacheService.get('shop:all:categories'),
-    );
-    const elements = await this.repository
-      .createQueryBuilder()
-      .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
-      .limit(MAX_ELEMENTS_OF_PAGE)
-      .orderBy('position', 'ASC')
-      .getMany();
-    if (elements.length === 0) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
-    }
-    this.paginationService.setPrefix('/categories/active');
-    return {
-      page,
-      totalPages: getTotalPages(totalElements),
-      totalElements,
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    let totals = [];
+    try {
+      totals = await this.getAlls(search, sort, filter);
+    } catch {}
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('categories/active');
+    return this.paginationService.getResponseObject(
       elements,
-    };
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+      null,
+    );
   }
 
   async checkCategoryById(id: string): Promise<Category> {
@@ -208,6 +230,18 @@ export class CategoryService extends ServiceUtil<
     }
     return existCategory;
   }
+
+  async getCategory(id: string): Promise<Category> {
+    const existCategory = await this.findOneByCondition({ pkCategory: id });
+    if (!existCategory) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Category with this id is not exist',
+      );
+    }
+    return existCategory;
+  }
+
   async getMaxPosition(): Promise<any> {
     return this.repository
       .createQueryBuilder()

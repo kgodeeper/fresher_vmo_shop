@@ -7,10 +7,11 @@ import {
   Matches,
 } from 'class-validator';
 import { UUID_REGEX } from '../../utils/regex.util';
+import * as Message from '../../commons/string.common';
 
 export class AddProductModelDto {
   @ApiProperty()
-  @Matches(UUID_REGEX)
+  @Matches(UUID_REGEX, { message: Message.ValidatorMessage.UUID_NOT_VALID })
   product: string;
 
   @ApiProperty()
@@ -21,25 +22,31 @@ export class AddProductModelDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  screen: string;
-
-  @ApiProperty()
-  @IsOptional()
-  @IsString()
-  os: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   color: string;
 
   @ApiProperty()
   @IsNotEmpty()
   @IsNumberString()
   quantityInStock: string;
+}
 
+export class UpdateProductModelDto {
   @ApiProperty()
-  @IsNotEmpty()
+  @Matches(UUID_REGEX, { message: Message.ValidatorMessage.UUID_NOT_VALID })
+  modelId: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
-  battery: string;
+  memory: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  color: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumberString()
+  quantityInStock: string;
 }

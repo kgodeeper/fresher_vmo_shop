@@ -76,20 +76,21 @@ export class ServiceUtil<T extends BaseEntity, R extends Repository<T>> {
     force?: getAllForceOptions,
     join?: getAllJoinOptions,
     range?: string,
+    specifyRange?: string,
   ): Promise<T[]> {
     const forceStr = bindForceQuery(force);
     const searchStr = bindSearchQuery(search);
     const filterStr = bindFilterQuery(filter, force);
     const rangeStr = bindRangeQuery(range);
     const sortStr = bindSortQuery(sort);
-    const conditions = [forceStr, searchStr, filterStr, rangeStr];
+    const conditions = [forceStr, searchStr, filterStr, rangeStr, specifyRange];
     const available = conditions.reduce((result, item) => {
       if (item) result.push(item);
       return result;
     }, []);
-    const whereString = `${available.join(' AND ')} ${
-      sortStr ? `ORDER BY ${sortStr}` : ''
-    }`;
+    const whereString = `${
+      available.length > 0 ? available.join(' AND ') : 'true'
+    } ${sortStr ? `ORDER BY ${sortStr}` : ''}`;
     const repoWhere = await this.repository
       .createQueryBuilder(join?.rootName)
       .where(whereString);
@@ -97,7 +98,7 @@ export class ServiceUtil<T extends BaseEntity, R extends Repository<T>> {
       for (let i = 0; i < join.joinColumns.length; i++) {
         repoWhere.leftJoinAndSelect(
           join.joinColumns[i].column,
-          join[i].joinColumns.optional,
+          join.joinColumns[i].optional,
         );
       }
     }

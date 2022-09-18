@@ -4,15 +4,21 @@ import { ServiceUtil } from '../../utils/service.utils';
 import { Between, DataSource, MoreThan, Repository } from 'typeorm';
 import { Sale } from './sale.entity';
 import { AddSaleDto } from './sale.dto';
-import { IPaginate } from '../../utils/interface.util';
+import {
+  getAllForceOptions,
+  IPaginate,
+  IPagination,
+} from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
 import { ConfigService } from '@nestjs/config';
+import { PaginationService } from '../paginations/pagination.service';
 
 @Injectable()
 export class SaleService extends ServiceUtil<Sale, Repository<Sale>> {
   constructor(
     private dataSource: DataSource,
+    private paginationService: PaginationService<Sale>,
     private configService: ConfigService,
   ) {
     super(dataSource.getRepository(Sale));
@@ -34,8 +40,6 @@ export class SaleService extends ServiceUtil<Sale, Repository<Sale>> {
     const beginDate = new Date(begin);
     const endDate = new Date(begin);
     endDate.setHours(endDate.getHours() + Number(duration));
-    beginDate.setHours(beginDate.getHours() - 7);
-    endDate.setHours(endDate.getHours() - 7);
     const existSale = await this.repository.findOne({
       where: [
         { begin: Between(beginDate, endDate) },
@@ -52,46 +56,56 @@ export class SaleService extends ServiceUtil<Sale, Repository<Sale>> {
     await this.repository.save(sale);
   }
 
-  async getAllSales(page: number): Promise<IPaginate<Sale>> {
-    if (page <= 0) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Page is not valid');
+  async getAllSales(
+    page: number,
+    pLimit: string,
+    search: string,
+    sort: string,
+    filter: string,
+  ): Promise<IPagination<Sale>> {
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    let totals = [];
+    try {
+      totals = await this.getAlls(search, sort, filter, null, null);
+    } catch (error) {
+      console.log(error);
     }
-    const allSales = await this.findAllByCondition({});
-    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= allSales.length) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
-    }
-    const elements = allSales.slice(
-      (page - 1) * MAX_ELEMENTS_OF_PAGE,
-      page * MAX_ELEMENTS_OF_PAGE,
-    );
-    return {
-      page,
-      totalPages: getTotalPages(allSales.length),
-      totalElements: allSales.length,
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('sales/all');
+    return this.paginationService.getResponseObject(
       elements,
-    };
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 
-  async getActiveSales(page: number): Promise<IPaginate<Sale>> {
-    if (page <= 0) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Page is not valid');
-    }
-    const allSales = await this.findAllByCondition({
-      end: MoreThan(new Date()),
-    });
-    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= allSales.length) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
-    }
-    const elements = allSales.slice(
-      (page - 1) * MAX_ELEMENTS_OF_PAGE,
-      page * MAX_ELEMENTS_OF_PAGE,
-    );
-    return {
-      page,
-      totalPages: getTotalPages(allSales.length),
-      totalElements: allSales.length,
+  async getFutureSales(
+    page: number,
+    pLimit: string,
+  ): Promise<IPagination<Sale>> {
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    const totals = await this.repository
+      .createQueryBuilder()
+      .where('"begin" > now()')
+      .getMany();
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('sales/feature');
+    return this.paginationService.getResponseObject(
       elements,
-    };
+      total,
+      page,
+      limit,
+    );
   }
 
   async getSaleDetail(id: string): Promise<Sale> {

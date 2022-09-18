@@ -13,6 +13,7 @@ export const ValidatorMessage = {
   ROLE_NOT_VALID: 'Role must be customer, staff or superuser',
   FULLNAME_NOT_VALID: 'Fullname only contains letters and space',
   PHONE_NOT_VALID: 'Phone number must be valid phone',
+  GENDER_NOT_VALID: 'Gender must be male, female or orther',
 };
 
 export const PaymentUrl = {

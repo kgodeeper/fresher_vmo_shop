@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -14,9 +15,10 @@ import {
   ApiExtraModels,
   ApiOkResponse,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { IPaginate } from '../../utils/interface.util';
+import { IPaginate, IPagination } from '../../utils/interface.util';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
@@ -40,26 +42,54 @@ export class SaleController {
     return this.saleService.addSale(body);
   }
 
+  @ApiQuery({
+    name: 'page',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+  })
   @ApiBearerAuth()
-  @Get('all/:page')
+  @Get('all')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.SUPERUSER, Role.STAFF)
   async getAllSale(
-    @Param('page', new ParseIntPipe()) page: number,
-  ): Promise<IPaginate<Sale>> {
-    return this.saleService.getAllSales(page);
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('sort') sort: string,
+    @Query('filter') filter: string,
+  ): Promise<IPagination<Sale>> {
+    return this.saleService.getAllSales(page, limit, search, sort, filter);
   }
 
-  @Get('active/:page')
-  async getActiveSale(
-    @Param('page', new ParseIntPipe()) page: number,
-  ): Promise<IPaginate<Sale>> {
-    return this.saleService.getActiveSales(page);
-  }
-
-  @Get('current')
-  async getCurrentSale(): Promise<Sale> {
-    return this.saleService.getCurrentSale();
+  @ApiQuery({
+    name: 'page',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+  })
+  @Get('future')
+  async getFutureSale(
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+  ): Promise<IPagination<Sale>> {
+    return this.saleService.getFutureSales(page, limit);
   }
 
   @Get('details/:id')

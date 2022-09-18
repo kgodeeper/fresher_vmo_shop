@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { RedisCacheModule } from '../caches/cache.module';
 import { CategoryModule } from '../categories/category.module';
 import { PaginationModule } from '../paginations/pagination.module';
@@ -11,7 +11,7 @@ import { ProductService } from './product.service';
 @Module({
   imports: [
     SuplierModule,
-    CategoryModule,
+    forwardRef(() => CategoryModule),
     UploadModule,
     RedisCacheModule,
     PhotoModule,

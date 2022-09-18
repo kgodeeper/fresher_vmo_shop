@@ -5,7 +5,7 @@ import { FULLNAME_REGEX } from '../../utils/regex.util';
 import * as Message from '../../commons/string.common';
 
 export class UpdateCustomerInformationDto {
-  @ApiProperty()
+  @ApiProperty({ required: false })
   @IsOptional()
   @Matches(FULLNAME_REGEX, {
     message: Message.ValidatorMessage.FULLNAME_NOT_VALID,
@@ -16,7 +16,7 @@ export class UpdateCustomerInformationDto {
     required: false,
   })
   @IsOptional()
-  @IsEnum(Gender)
+  @IsEnum(Gender, { message: Message.ValidatorMessage.GENDER_NOT_VALID })
   gender: Gender;
 
   @ApiProperty({

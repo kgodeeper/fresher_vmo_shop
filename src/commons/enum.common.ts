@@ -36,11 +36,20 @@ export enum ShipmentStatus {
 
 export enum OrderStatus {
   PROCESSING = 'processing',
+  REQUIRE_RETURN = 'require cancel',
   COMPLETE = 'complete',
   CANCEL = 'cancel',
+  RETURNED = 'returned',
 }
 
 export enum LoginMethod {
   EMAIL = 'email',
   BOTH = 'both',
+}
+
+export enum PhoneOs {
+  ANDROID = 'android',
+  IOS = 'ios',
+  WINDOWN_PHONE = 'window phone',
+  BLACKBERRY = 'blackberry',
 }

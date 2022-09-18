@@ -20,27 +20,11 @@ export class HandleResponseInterceptor implements NestInterceptor {
       response.statusCode = HttpStatus.OK;
     return next.handle().pipe(
       map((data) => {
-        if (data) {
-          data = this.deepDateCheck(data);
-        }
         if (data?.password) {
           delete data.password;
         }
         return data;
       }),
     );
-  }
-
-  deepDateCheck(containsDateObj: any): void {
-    if (containsDateObj instanceof Date) {
-      containsDateObj = containsDateObj.setHours(
-        containsDateObj.getHours() + 7,
-      );
-    } else if (typeof containsDateObj === 'object') {
-      for (const key in containsDateObj) {
-        this.deepDateCheck(containsDateObj[key]);
-      }
-    }
-    return containsDateObj;
   }
 }

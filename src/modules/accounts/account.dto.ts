@@ -87,6 +87,12 @@ export class UpdateAccountDto {
   password: string;
 }
 
+export class ForgotPasswordRequireDto {
+  @ApiProperty()
+  @IsNotEmpty()
+  account: string;
+}
+
 export class ForgotPasswordDto {
   @ApiProperty()
   @IsEmail()
@@ -105,7 +111,7 @@ export class ForgotPasswordDto {
   code: string;
 }
 
-export class ChangeStatusDto {
+export class StatusDto {
   @ApiProperty()
   @Matches(Regex.UUID_REGEX, {
     message: Message.ValidatorMessage.UUID_NOT_VALID,

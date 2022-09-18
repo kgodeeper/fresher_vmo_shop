@@ -38,12 +38,16 @@ export class CustomerService extends ServiceUtil<
     if (!existCustomer) {
       existCustomer = new Customer(
         fullname,
-        new Date(dob),
+        dob ? new Date(dob) : undefined,
         gender,
         existAccount,
       );
     } else {
-      existCustomer.updateInformation(fullname, new Date(dob), gender);
+      existCustomer.updateInformation(
+        fullname,
+        dob ? new Date(dob) : undefined,
+        gender,
+      );
     }
     /**
      * update if customer is exist, insert else
@@ -60,7 +64,12 @@ export class CustomerService extends ServiceUtil<
       /**
        * if customer information is not updated, only return customer's account
        */
-      existCustomer = new Customer(null, null, null, existAccount);
+      existCustomer = new Customer(
+        undefined,
+        undefined,
+        undefined,
+        existAccount,
+      );
     }
     /**
      * delete some secret information

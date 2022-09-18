@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConsumes,
   ApiExtraModels,
   ApiForbiddenResponse,
   ApiOkResponse,
@@ -24,9 +25,10 @@ import { CustomerService } from './customer.service';
 export class CustomerController {
   constructor(private customerService: CustomerService) {}
 
+  @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
-  @ApiBearerAuth()
   @Put('update')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.CUSTOMER)
@@ -40,6 +42,7 @@ export class CustomerController {
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @ApiBearerAuth()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @Get()
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.CUSTOMER)
@@ -49,6 +52,7 @@ export class CustomerController {
 
   @ApiUnauthorizedResponse()
   @ApiBadRequestResponse()
+  @ApiConsumes('application/x-www-form-urlencoded')
   @ApiBearerAuth()
   @Post('register')
   @UseGuards(AuthGuard, RoleGuard)

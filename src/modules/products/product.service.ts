@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { ServiceUtil } from '../../utils/service.utils';
 import { DataSource, Repository } from 'typeorm';
@@ -8,16 +8,15 @@ import { Product } from './product.entity';
 import { CategoryService } from '../categories/category.service';
 import { RedisCacheService } from '../caches/cache.service';
 import { UploadService } from '../uploads/upload.service';
-import {
-  combineFilter,
-  combineRange,
-  combineSearch,
-  combineSort,
-  getPublicId,
-} from '../../utils/string.util';
+import { getPublicId } from '../../utils/string.util';
 import { Status } from '../../commons/enum.common';
 import { PhotoService } from '../photos/photo.service';
-import { IPaginate, IPagination } from '../../utils/interface.util';
+import {
+  getAllForceOptions,
+  getAllJoinOptions,
+  IPaginate,
+  IPagination,
+} from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
 import { SaleProduct } from '../sale-products/sale-product.entity';
@@ -29,7 +28,6 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     private dataSource: DataSource,
     private photoService: PhotoService,
     private categoryService: CategoryService,
-    private cacheService: RedisCacheService,
     private uploadService: UploadService,
     private suplierService: SuplierService,
     private paginationService: PaginationService<Product>,
@@ -38,7 +36,6 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
   }
 
   async addProduct(
-    barcode: Express.Multer.File[],
     avatar: Express.Multer.File[],
     photos: Express.Multer.File[],
     productInfo: AddProductDto,
@@ -46,6 +43,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     if (
       await this.checkProductExist(
         productInfo.name,
+        productInfo.barcode,
         productInfo.suplier,
         productInfo.category,
       )
@@ -62,6 +60,10 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       category,
       suplier,
       name,
+      os,
+      screen,
+      battery,
+      barcode,
       importPrice,
       exportPrice,
       description,
@@ -79,28 +81,32 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       );
     }
     // check weight
-    if (Number(weight) <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Weight can not be lower or equal 0',
-      );
+    if (weight) {
+      if (Number(weight) <= 0) {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          'Weight can not be lower or equal 0',
+        );
+      }
     }
-    // upload
-    const barcodeUploaded = await this.uploadService.uploadToCloudinary(
-      barcode[0],
-      'products/barcode',
-    );
-    const avatarUploaded = await this.uploadService.uploadToCloudinary(
-      avatar[0],
-      `products/${existCategory.name}`,
-    );
+    let avatarUrl = null;
+    if (avatar) {
+      const avatarUploaded = await this.uploadService.uploadToCloudinary(
+        avatar[0],
+        `products/${existCategory.name}`,
+      );
+      avatarUrl = avatarUploaded.url;
+    }
     // save product to get product id
     const product = new Product(
       existCategory,
       existSuplier,
       name,
-      barcodeUploaded.url,
-      avatarUploaded.url,
+      barcode,
+      avatarUrl,
+      os,
+      screen,
+      battery,
       Number(importPrice),
       Number(exportPrice),
       Number(weight),
@@ -115,16 +121,10 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       }, []);
       await Promise.all(savePhotos);
     }
-    /**
-     * cache quantiy
-     */
-    await this.cacheService.updateQuantityValue('shop:all:products', 1);
-    await this.cacheService.updateQuantityValue('shop:active:products', 1);
   }
 
   async updateProduct(
     updateInfo: UpdateProductDto,
-    barcode: Express.Multer.File[],
     avatar: Express.Multer.File[],
   ): Promise<void> {
     const {
@@ -132,6 +132,10 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       category,
       suplier,
       name,
+      os,
+      screen,
+      battery,
+      barcode,
       importPrice,
       exportPrice,
       weight,
@@ -190,26 +194,10 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
         `Weight must be greater than 0`,
       );
     }
-    if (description.length > 10000) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Description too long`,
-      );
-    }
     /**
      * check upload
      */
-    let uploadedBarcode, uploadedAvatar;
-    if (barcode) {
-      await this.uploadService.removeFromCloudinary(
-        getPublicId(existProduct.barcode),
-        `products/barcode`,
-      );
-      uploadedBarcode = await this.uploadService.uploadToCloudinary(
-        barcode[0],
-        `products/barcode`,
-      );
-    }
+    let uploadedAvatar;
     if (avatar) {
       await this.uploadService.removeFromCloudinary(
         getPublicId(existProduct.avatar),
@@ -225,11 +213,14 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
      */
     existProduct.updateInformation(
       name,
-      uploadedBarcode?.url,
+      barcode,
       uploadedAvatar?.url,
-      importPrice,
-      exportPrice,
-      weight,
+      os,
+      screen,
+      battery,
+      importPrice ? Number(importPrice) : undefined,
+      exportPrice ? Number(exportPrice) : undefined,
+      weight ? Number(weight) : undefined,
       description,
       existSuplier,
       existCategory,
@@ -237,26 +228,63 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     await existProduct.save();
   }
 
-  async getAllProducts(page: number): Promise<IPaginate<Product>> {
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Page number not found',
-      );
-    }
-    const totalElements = Number(
-      await this.cacheService.get('shop:all:products'),
+  async getAllProducts(
+    page: number,
+    pLimit: string,
+    search: string,
+    sort: string,
+    filter: string,
+    range: string,
+  ): Promise<IPagination<Product>> {
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    const containSecretField = this.checkIncludeSecretField(
+      search,
+      sort,
+      filter,
+      range,
     );
-    const elements = await this.getProducts(page);
-    if (elements.length === 0) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, `Out of range`);
+    if (containSecretField) {
+      return this.paginationService.getResponseObject([], 0, page, limit);
     }
-    return {
-      page,
-      totalPages: getTotalPages(totalElements),
-      totalElements,
-      elements,
+    const join: getAllJoinOptions = {
+      rootName: 'product',
+      joinColumns: [
+        {
+          column: 'product.sales',
+          optional: 'sales',
+        },
+        {
+          column: 'sales.fkSale',
+          optional: 'fkSale',
+        },
+      ],
     };
+    let totals = [];
+    try {
+      totals = await this.getAlls(search, sort, filter, null, join, range);
+    } catch {}
+    totals = totals.map((item) => {
+      item.sales = item.sales.filter((elm) => {
+        return new Date(elm.fkSale.end) > new Date();
+      });
+      delete item.importPrice;
+      return item;
+    });
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('products/all');
+    return this.paginationService.getResponseObject(
+      elements,
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+      range,
+    );
   }
 
   async getAllActiveProducts(
@@ -270,31 +298,47 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     if (page <= 0) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
-    const force = {
-      key: 'status',
-      value: 'active',
+    const containSecretField = this.checkIncludeSecretField(
+      search,
+      sort,
+      filter,
+      range,
+    );
+    if (containSecretField) {
+      return this.paginationService.getResponseObject([], 0, page, limit);
+    }
+    const forceTargets: getAllForceOptions = {
+      forces: [
+        {
+          column: 'status',
+          condition: 'active',
+        },
+      ],
     };
-    const sortStr = combineSort(sort);
-    const filterStr = combineFilter(filter, force);
-    const searchStr = combineSearch(search);
-    const rangeStr = combineRange(range, force);
+    const join: getAllJoinOptions = {
+      rootName: 'product',
+      joinColumns: [
+        {
+          column: 'product.sales',
+          optional: 'sales',
+        },
+        {
+          column: 'sales.fkSale',
+          optional: 'fkSale',
+        },
+      ],
+    };
     let totals = [];
     try {
       totals = await this.getAlls(
-        searchStr,
-        sortStr,
-        filterStr,
-        force,
-        'product',
-        [
-          { key: 'product.sales', value: 'sales' },
-          { key: 'sales.fkSale', value: 'fkSake' },
-        ],
-        rangeStr,
+        search,
+        sort,
+        filter,
+        forceTargets,
+        join,
+        range,
       );
-    } catch (error) {
-      console.log(error);
-    }
+    } catch {}
     totals = totals.map((item) => {
       item.sales = item.sales.filter((elm) => {
         return new Date(elm.fkSale.end) > new Date();
@@ -303,7 +347,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     });
     const total = totals.length;
     const elements = totals.splice((page - 1) * limit, page * limit);
-    this.paginationService.setPrefix('products/active');
+    this.paginationService.setPrefix('products');
     return this.paginationService.getResponseObject(
       elements,
       total,
@@ -316,103 +360,39 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     );
   }
 
-  async searchProduct(key: string, page: number): Promise<IPaginate<Product>> {
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Page number is not valid`,
-      );
-    }
-    const searchElements = await this.searchActiveProduct(key);
-    const totalElements = searchElements.length;
-    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= totalElements) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, `Out of range`);
-    }
-    const lastIndex = page * MAX_ELEMENTS_OF_PAGE + 1;
-    const elements = searchElements.slice(
-      (page - 1) * MAX_ELEMENTS_OF_PAGE,
-      lastIndex,
-    );
-    return {
-      page,
-      totalPages: getTotalPages(totalElements),
-      totalElements,
-      elements,
-    };
-  }
-
-  async filterProduct(
-    category: string,
-    suplier: string,
-    page: number,
-  ): Promise<IPaginate<Product>> {
-    if (page <= 0) {
-    }
-    const filterElements = await this.findAllWithJoin(
-      { fkCategory: true, fkSuplier: true, photos: true },
-      {
-        fkCategory: { pkCategory: category },
-        fkSuplier: { pkSuplier: suplier },
-        status: Status.ACTIVE,
-      },
-    );
-    const totalElements = filterElements.length;
-    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= totalElements) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, `Out of range`);
-    }
-    const lastIndex = page * MAX_ELEMENTS_OF_PAGE + 1;
-    const elements = filterElements.slice(
-      (page - 1) * MAX_ELEMENTS_OF_PAGE,
-      lastIndex,
-    );
-    return {
-      page,
-      totalPages: getTotalPages(totalElements),
-      totalElements,
-      elements,
-    };
-  }
-
-  async removeProduct(id: string): Promise<void> {
+  async changeProductStatus(id: string): Promise<void> {
     const existProduct = await this.getExistProduct(id);
-    existProduct.status = Status.INACTIVE;
+    if (existProduct.status === Status.ACTIVE) {
+      existProduct.status = Status.INACTIVE;
+    } else {
+      existProduct.status = Status.ACTIVE;
+    }
     await existProduct.save();
-    /**
-     * recache active product quantity
-     */
-    await this.cacheService.updateQuantityValue('shop:active:products', -1);
   }
 
   async getExistProduct(id: string): Promise<Product> {
     const existProduct = await this.findOneByCondition({ pkProduct: id });
     if (!existProduct) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Product with this id is not exist',
-      );
-    }
-    if (existProduct.status !== Status.ACTIVE) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Product with this id was ${existProduct.status}`,
-      );
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Product not found');
     }
     return existProduct;
   }
 
   async checkProductExist(
     name: string,
+    barcode: string,
     suplier: string,
     category: string,
   ): Promise<boolean> {
     const existProduct = await this.repository
       .createQueryBuilder()
       .where(
-        'LOWER(name) = LOWER(:name) AND "fkSuplier" = :suplier AND "fkCategory" = :category',
+        'LOWER(name) = LOWER(:name) AND "fkSuplier" = :suplier AND "fkCategory" = :category OR "barcode" = :barcode',
         {
           name,
           suplier,
           category,
+          barcode,
         },
       )
       .getOne();
@@ -420,39 +400,11 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     return false;
   }
 
-  async getProducts(page: number): Promise<Product[]> {
-    return await this.repository
-      .createQueryBuilder('product')
-      .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
-      .limit(MAX_ELEMENTS_OF_PAGE)
-      .getMany();
-  }
-
-  async getActiveProducts(page: number): Promise<Product[]> {
-    return await this.repository
-      .createQueryBuilder('product')
-      .where('"product"."status" = :status', { status: Status.ACTIVE })
-      .offset((page - 1) * MAX_ELEMENTS_OF_PAGE)
-      .limit(MAX_ELEMENTS_OF_PAGE)
-      .getMany();
-  }
-
-  async searchActiveProduct(key: string): Promise<Product[]> {
-    key = `%${key}%`;
-    return await this.repository
-      .createQueryBuilder('product')
-      .where(
-        'LOWER("product"."name") LIKE LOWER(:key) AND "product"."status" = :status',
-        {
-          key,
-          status: Status.ACTIVE,
-        },
-      )
-      .getMany();
-  }
-
   async getDetailProduct(id: string): Promise<Product> {
-    await this.getExistProduct(id);
+    const existProduct = await this.getExistProduct(id);
+    if (existProduct.status === Status.INACTIVE) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Product was removed');
+    }
     const product = await this.repository
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.fkCategory', 'category')
@@ -486,5 +438,22 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       return null;
     }
     return product.sales[0];
+  }
+
+  checkIncludeSecretField(search, sort, filter, range) {
+    return (
+      search?.includes('importPrice') ||
+      sort?.includes('importPrice') ||
+      filter?.includes('importPrice') ||
+      range?.includes('importPrice')
+    );
+  }
+
+  async checkProductInCategory(categoryId: string): Promise<boolean> {
+    const existProduct = await this.findOneByCondition({
+      fkCategory: { pkCategory: categoryId },
+      status: Status.ACTIVE,
+    });
+    return !!existProduct;
   }
 }

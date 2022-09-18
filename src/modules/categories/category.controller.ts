@@ -1,10 +1,10 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -18,7 +18,6 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
-  ApiExtraModels,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiParam,
@@ -115,27 +114,17 @@ export class CategoryController {
     return this.categoryService.swapPosition(params.id, body.id);
   }
 
-  @ApiOkResponse({
-    description: 'Remove category success',
-  })
-  @ApiBadRequestResponse({
-    description: 'Removecategory failure',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthornized',
-  })
-  @ApiForbiddenResponse({
-    description: 'Forbidden',
-  })
   @ApiBearerAuth()
   @ApiParam({
     name: 'id',
   })
-  @Delete(':id')
+  @Patch('status/:id')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
-  async removeCategory(@Param() params: UuidDto): Promise<void> {
-    return this.categoryService.removeCategory(params.id);
+  async changeCategorySttus(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    return this.categoryService.changeCategoryStatus(id);
   }
 
   @Get('')
@@ -175,18 +164,40 @@ export class CategoryController {
     );
   }
 
-  @ApiUnauthorizedResponse()
-  @ApiForbiddenResponse()
-  @ApiBearerAuth()
-  @ApiParam({
+  @Get('/all')
+  @ApiQuery({
     name: 'page',
+    required: true,
   })
-  @Get('all/:page')
-  @UseGuards(AuthGuard, RoleGuard)
-  @RequireRoles(Role.STAFF, Role.SUPERUSER)
-  async getAllCategory(
-    @Param('page', new ParseIntPipe()) page: number,
-  ): Promise<IPaginate<Category>> {
-    return this.categoryService.getAllCategories(page);
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+  })
+  async getAllCategories(
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('sort') sort: string,
+    @Query('filter') filter: string,
+  ): Promise<IPagination<Category>> {
+    return this.categoryService.getAllCategories(
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 }

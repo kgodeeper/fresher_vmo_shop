@@ -32,7 +32,7 @@ import { SaleProductService } from './sale-product.service';
 @ApiOkResponse()
 export class SaleProductController {
   constructor(private saleProductService: SaleProductService) {}
-  @ApiExtraModels(AddSaleProductDto)
+
   @ApiBearerAuth()
   @Post()
   @UseGuards(AuthGuard, RoleGuard)

@@ -21,17 +21,18 @@ export class OrderProduct extends BaseEntity {
   pkOrderProduct: string;
 
   @Column({
-    default: 9999,
+    nullable: true,
   })
   priceAfterSale: number;
 
-  @Column({
-    default: 9999,
-  })
+  @Column()
+  priceBeforeSale: number;
+
+  @Column()
   quantity: number;
 
   @Column({
-    default: 9999,
+    nullable: true,
   })
   totalPrice: number;
 

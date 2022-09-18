@@ -7,6 +7,10 @@ import { AccountStatus, LoginMethod, Role } from '../../commons/enum.common';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { MailService } from '../mailer/mail.service';
 import {
+  combineFilter,
+  combineRange,
+  combineSearch,
+  combineSort,
   encrypt,
   generateCode,
   getPublicId,
@@ -265,8 +269,8 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     await this.cacheService.destroyAllKeys(`email:${oldEmail}:*`);
   }
 
-  async requireForgotPassword(email: string): Promise<void> {
-    const existAccount = await this.getActiveAccountName(email);
+  async requireForgotPassword(account: string): Promise<void> {
+    const existAccount = await this.getActiveAccountName(account);
     this.requireBothLogin(existAccount);
     const verifyCode = generateCode();
     await this.mailService.forgotPassword(existAccount.email, verifyCode);
@@ -274,7 +278,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
      * cache verifyCode
      */
     await this.cacheService.set(
-      `email:${email}:forgotPasswordCode`,
+      `email:${existAccount.email}:forgotPasswordCode`,
       verifyCode,
       this.configService.get<number>('VERIFY_TTL'),
     );
@@ -335,33 +339,31 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
 
   async getAllAccounts(
     page: number,
-    limit: number,
+    pLimit: string,
     search: string,
     sort: string,
     filter: string,
   ): Promise<IPagination<Account>> {
-    if (limit <= 0) limit = MAX_ELEMENTS_OF_PAGE;
     if (page <= 0) page = 1;
-    const accounts = await this.findAllWithLimit((page - 1) * limit, limit);
-    if (accounts.length === 0) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    let totals = [];
+    try {
+      totals = await this.getAlls(search, sort, filter);
+    } catch (error) {
+      console.log(error);
     }
-    /**
-     * get count total element from cache
-     */
-    const totalElements = Number(
-      await this.cacheService.get('shop:all:accounts'),
-    );
-    this.paginationService.setPrefix('accounts/all');
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('accounts/active');
     return this.paginationService.getResponseObject(
-      accounts,
-      totalElements,
+      elements,
+      total,
       page,
       limit,
       search,
       sort,
       filter,
-      null,
     );
   }
 

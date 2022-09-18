@@ -1,12 +1,27 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
-  ApiExtraModels,
+  ApiBearerAuth,
+  ApiConsumes,
   ApiOkResponse,
+  ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { AddProductModelDto } from './model.dto';
+import { RoleGuard } from '../../guards/role.guard';
+import { AuthGuard } from '../../guards/auth.guard';
+import { AddProductModelDto, UpdateProductModelDto } from './model.dto';
 import { ProductModelService } from './model.service';
+import { RequireRoles } from '../../decorators/bind-role.decorator';
+import { Role } from '../../commons/enum.common';
 
 @Controller('models')
 @ApiTags('Models')
@@ -15,9 +30,31 @@ import { ProductModelService } from './model.service';
 export class ProductModelController {
   constructor(private productModelService: ProductModelService) {}
 
-  @ApiExtraModels(AddProductModelDto)
+  @ApiBearerAuth()
   @Post()
+  @ApiConsumes('application/x-www-form-urlencoded')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.SUPERUSER, Role.SUPERUSER)
   async addProductModel(@Body() body: AddProductModelDto): Promise<void> {
     return this.productModelService.addProductModel(body);
+  }
+
+  @ApiBearerAuth()
+  @Put()
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.SUPERUSER, Role.SUPERUSER)
+  @ApiConsumes('application/x-www-form-urlencoded')
+  async updateProductModel(@Body() body: UpdateProductModelDto): Promise<void> {
+    return this.productModelService.updateProductModel(body.modelId, body);
+  }
+
+  @ApiBearerAuth()
+  @Patch('status/:id')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.CUSTOMER, Role.SUPERUSER)
+  async changeModelStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<void> {
+    return this.productModelService.changeModelStatus(id);
   }
 }

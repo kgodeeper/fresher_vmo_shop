@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ServiceUtil } from '../../utils/service.utils';
 import { DataSource, Repository } from 'typeorm';
-import { AddProductModelDto } from './model.dto';
+import { AddProductModelDto, UpdateProductModelDto } from './model.dto';
 import { ProductModel } from './model.entity';
 import { ProductService } from '../products/product.service';
 import { AppHttpException } from '../../exceptions/http.exception';
@@ -23,14 +23,11 @@ export class ProductModelService extends ServiceUtil<
     const existProduct = await this.productService.getExistProduct(
       modelInfo.product,
     );
-    const { memory, screen, os, color, quantityInStock, battery } = modelInfo;
+    const { memory, color, quantityInStock } = modelInfo;
     const model = new ProductModel(
       memory,
-      screen,
-      os,
       color,
       Number(quantityInStock),
-      battery,
       existProduct,
     );
     /**
@@ -38,10 +35,7 @@ export class ProductModelService extends ServiceUtil<
      */
     const existModel = await this.findOneByCondition({
       memory,
-      screen,
-      os,
       color,
-      battery,
     });
     if (existModel && existModel.fkProduct === existProduct) {
       throw new AppHttpException(
@@ -107,5 +101,55 @@ export class ProductModelService extends ServiceUtil<
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Model was remove');
     }
     return existModel.fkProduct.pkProduct;
+  }
+
+  async updateProductModel(
+    modelId: string,
+    modelInfo: UpdateProductModelDto,
+  ): Promise<void> {
+    const existModel = await this.getExistModel(modelId);
+    const { color, memory, quantityInStock } = modelInfo;
+    existModel.updateModel(
+      color,
+      memory,
+      quantityInStock ? Number(quantityInStock) : undefined,
+    );
+    await existModel.save();
+  }
+
+  async getExistModel(modelId: string): Promise<ProductModel> {
+    const existModel = await this.findOneByCondition({
+      pkProductModel: modelId,
+    });
+    if (!existModel) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Model is not exist');
+    }
+    if (existModel.status === Status.INACTIVE) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Model was removed');
+    }
+    return existModel;
+  }
+
+  async changeModelStatus(modelId: string): Promise<void> {
+    const existModel = await this.findOneByCondition({
+      pkProductModel: modelId,
+    });
+    if (!existModel) {
+      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Model is not exist');
+    }
+    if (existModel.status === Status.ACTIVE) {
+      existModel.status = Status.INACTIVE;
+    } else {
+      existModel.status = Status.ACTIVE;
+    }
+    await existModel.save();
+  }
+
+  async returnQuantity(modelId: string, quantity: number): Promise<void> {
+    const existModel = await this.findOneByCondition({
+      pkProductModel: modelId,
+    });
+    existModel.quantityInStock += quantity;
+    await existModel.save();
   }
 }

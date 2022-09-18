@@ -1,4 +1,4 @@
-import { Status } from '../../commons/enum.common';
+import { PhoneOs, Status } from '../../commons/enum.common';
 import {
   BaseEntity,
   Column,
@@ -14,7 +14,6 @@ import { Category } from '../categories/category.entity';
 import { Suplier } from '../supliers/suplier.entity';
 import { Photo } from '../photos/photo.entity';
 import { ProductModel } from '../models/model.entity';
-import { Sale } from '../sales/sale.entity';
 import { SaleProduct } from '../sale-products/sale-product.entity';
 
 @Entity()
@@ -25,6 +24,9 @@ export class Product extends BaseEntity {
     name: string,
     barcode: string,
     avatar: string,
+    os: PhoneOs,
+    screen: string,
+    battery: string,
     importPrice: number,
     exportPrice: number,
     weight?: number,
@@ -38,6 +40,9 @@ export class Product extends BaseEntity {
     this.avatar = avatar;
     this.importPrice = importPrice;
     this.exportPrice = exportPrice;
+    this.os = os;
+    this.screen = screen;
+    this.battery = battery;
     this.weight = weight;
     this.description = description;
   }
@@ -50,7 +55,9 @@ export class Product extends BaseEntity {
   @Column()
   barcode: string;
 
-  @Column()
+  @Column({
+    nullable: true,
+  })
   avatar: string;
 
   @Column()
@@ -63,6 +70,19 @@ export class Product extends BaseEntity {
     nullable: true,
   })
   weight: number;
+
+  @Column({
+    type: 'enum',
+    enum: PhoneOs,
+    default: PhoneOs.ANDROID,
+  })
+  os: PhoneOs;
+
+  @Column()
+  screen: string;
+
+  @Column()
+  battery: string;
 
   @Column({
     nullable: true,
@@ -111,9 +131,12 @@ export class Product extends BaseEntity {
     name?: string,
     barcode?: string,
     avatar?: string,
-    importPrice?: string,
-    exportPrice?: string,
-    weight?: string,
+    os?: PhoneOs,
+    screen?: string,
+    battery?: string,
+    importPrice?: number,
+    exportPrice?: number,
+    weight?: number,
     description?: string,
     suplier?: Suplier,
     category?: Category,
@@ -121,9 +144,12 @@ export class Product extends BaseEntity {
     this.name = name;
     this.barcode = barcode;
     this.avatar = avatar;
-    this.importPrice = Number(importPrice);
-    this.exportPrice = Number(exportPrice);
-    this.weight = Number(weight);
+    this.os = os;
+    this.battery = battery;
+    this.screen = screen;
+    this.importPrice = importPrice;
+    this.exportPrice = exportPrice;
+    this.weight = weight;
     this.description = description;
     this.fkSuplier = suplier;
     this.fkCategory = category;

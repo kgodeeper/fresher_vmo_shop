@@ -7,7 +7,11 @@ import { AppHttpException } from '../../exceptions/http.exception';
 import { Status } from '../../commons/enum.common';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
-import { IPaginate, IPagination } from '../../utils/interface.util';
+import {
+  getAllForceOptions,
+  IPaginate,
+  IPagination,
+} from '../../utils/interface.util';
 import {
   combineFilter,
   combineSearch,
@@ -47,12 +51,6 @@ export class CouponService extends ServiceUtil<Coupon, Repository<Coupon>> {
       Number(total),
     );
     await this.repository.manager.save(coupon);
-  }
-
-  async removeCoupon(id: string): Promise<void> {
-    const existCoupon = await this.getExistCoupon(id);
-    existCoupon.status = Status.INACTIVE;
-    await existCoupon.save();
   }
 
   async getExistCoupon(id: string): Promise<Coupon> {
@@ -98,32 +96,6 @@ export class CouponService extends ServiceUtil<Coupon, Repository<Coupon>> {
     };
   }
 
-  async getAllActiveCoupon(page: number): Promise<IPaginate<Coupon>> {
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Page number is invalid',
-      );
-    }
-    const totalCoupons = await this.repository
-      .createQueryBuilder()
-      .where('"status" = :status AND "end" > now()', { status: Status.ACTIVE })
-      .getMany();
-    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= totalCoupons.length) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
-    }
-    const elements = totalCoupons.slice(
-      (page - 1) * MAX_ELEMENTS_OF_PAGE,
-      page * MAX_ELEMENTS_OF_PAGE + 1,
-    );
-    return {
-      page,
-      totalPages: getTotalPages(totalCoupons.length),
-      totalElements: totalCoupons.length,
-      elements,
-    };
-  }
-
   async getCouponByCode(code: string): Promise<Coupon> {
     return this.repository
       .createQueryBuilder()
@@ -141,23 +113,25 @@ export class CouponService extends ServiceUtil<Coupon, Repository<Coupon>> {
     if (page <= 0) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
-    const force = {
-      key: 'status',
-      value: 'active',
+    const force: getAllForceOptions = {
+      forces: [
+        {
+          column: 'status',
+          condition: Status.ACTIVE,
+        },
+      ],
     };
-    const sortStr = combineSort(sort);
-    const filterStr = combineFilter(filter, force);
-    const searchStr = combineSearch(search);
+    const specifyRange = `now() BETWEEN "begin" AND "end"`;
     let totals = [];
     try {
       totals = await this.getAlls(
-        searchStr,
-        sortStr,
-        filterStr,
+        search,
+        sort,
+        filter,
         force,
-        undefined,
-        undefined,
-        ' now() BETWEEN "begin" AND "end"',
+        null,
+        null,
+        specifyRange,
       );
     } catch (error) {
       console.log(error);

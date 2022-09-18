@@ -18,7 +18,6 @@ import {
 import { Customer } from '../customers/customer.entity';
 import { OrderProduct } from '../order-products/order-product.entity';
 import { Delivery } from '../deliveries/delivery.entity';
-import { Coupon } from '../coupons/coupon.entity';
 import { CustomerCoupon } from '../customer-coupons/customer-coupon.entity';
 import { Payment } from '../payments/payment.entity';
 
@@ -49,6 +48,14 @@ export class Order extends BaseEntity {
     nullable: true,
   })
   finalPrice: number;
+
+  @Column({
+    default: 0,
+  })
+  discount: number;
+
+  @Column()
+  deliveryAddress: string;
 
   @Column({
     nullable: true,

@@ -7,7 +7,12 @@ import { ProductService } from '../products/product.service';
 import { SaleService } from '../sales/sale.service';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { ProductModelService } from '../models/model.service';
-import { IPaginate, IPagination } from 'src/utils/interface.util';
+import {
+  getAllForceOptions,
+  getAllJoinOptions,
+  IPaginate,
+  IPagination,
+} from 'src/utils/interface.util';
 import {
   combineFilter,
   combineSearch,
@@ -98,23 +103,26 @@ export class SaleProductService extends ServiceUtil<
     if (page <= 0) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
-    const force = {
-      key: 'fkSale',
-      value: saleId,
+    const force: getAllForceOptions = {
+      forces: [
+        {
+          column: 'fkSale',
+          condition: saleId,
+        },
+      ],
     };
-    const sortStr = combineSort(sort);
-    const filterStr = combineFilter(filter, force);
-    const searchStr = combineSearch(search);
+    const join: getAllJoinOptions = {
+      rootName: 'product_sale',
+      joinColumns: [
+        {
+          column: 'product_sale.fkProduct',
+          optional: 'product',
+        },
+      ],
+    };
     let totals = [];
     try {
-      totals = await this.getAlls(
-        searchStr,
-        sortStr,
-        filterStr,
-        force,
-        'product_sale',
-        [{ key: 'product_sale.fkProduct', value: 'product' }],
-      );
+      totals = await this.getAlls(search, sort, filter, force, join);
       totals = totals.map((item) => {
         delete item.fkProduct.importPrice;
         return item;
@@ -122,7 +130,7 @@ export class SaleProductService extends ServiceUtil<
     } catch {}
     const total = totals.length;
     const elements = totals.splice((page - 1) * limit, page * limit);
-    this.paginationService.setPrefix('sale-products/current');
+    this.paginationService.setPrefix(`sale-products/${saleId}`);
     return this.paginationService.getResponseObject(
       elements,
       total,

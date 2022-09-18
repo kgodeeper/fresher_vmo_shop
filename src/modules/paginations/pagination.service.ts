@@ -20,10 +20,10 @@ export class PaginationService<T> {
     totalItems: number,
     page: number,
     limit: number,
-    search: string,
-    sort: string,
-    filter: string,
-    range: string,
+    search?: string,
+    sort?: string,
+    filter?: string,
+    range?: string,
   ): Promise<IPagination<T>> {
     let firstPage, lastPage, nextPage, previousPage;
     let queryString = `&limit=${limit}`;

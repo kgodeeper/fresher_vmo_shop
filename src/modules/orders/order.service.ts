@@ -23,10 +23,19 @@ import {
   ShipmentStatus,
   Status,
 } from '../../commons/enum.common';
-import { IPaginate } from '../../utils/interface.util';
+import {
+  getAllForceOptions,
+  getAllJoinOptions,
+  IPaginate,
+  IPagination,
+} from '../../utils/interface.util';
 import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { getTotalPages } from '../../utils/number.util';
 import { PaymentService } from '../payments/payment.service';
+import { CustomerCoupon } from '../customer-coupons/customer-coupon.entity';
+import { OrderProductService } from '../order-products/order-product.service';
+import { AccountService } from '../accounts/account.service';
+import { PaginationService } from '../paginations/pagination.service';
 
 @Injectable()
 export class OrderService extends ServiceUtil<Order, Repository<Order>> {
@@ -36,6 +45,9 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     private customerCouponService: CustomerCouponService,
     private customerService: CustomerService,
     private deliveryService: DeliveryService,
+    private accountService: AccountService,
+    private paginationService: PaginationService<Order>,
+    private orderProductService: OrderProductService,
     private productModelService: ProductModelService,
     @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
@@ -92,7 +104,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     /**
      * check customer coupon id
      */
-    let existCustomerCoupon;
+    let existCustomerCoupon: CustomerCoupon;
     if (coupon) {
       existCustomerCoupon =
         await this.customerCouponService.getCustomerCouponById(coupon);
@@ -147,7 +159,9 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
       const order = new Order();
       order.fkCustomer = existCustomer;
       order.fkDelivery = existDelivery;
+      order.deliveryAddress = `${existDelivery.phone} - ${existDelivery.homeAddress} - ${existDelivery.district} - ${existDelivery.province}`;
       order.fkCustomerCoupon = existCustomerCoupon;
+      order.discount = 0 | existCustomerCoupon?.fkCoupon.discount;
       // use customer coupon
       if (existCustomerCoupon) {
         existCustomerCoupon.used = true;
@@ -165,6 +179,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
           order,
           reduceProducts[i].quantity,
         );
+        orderProduct.priceBeforeSale = models[i].fkProduct.exportPrice;
         await entityManager.save(orderProduct);
         // get product
         const product = models[i].fkProduct;
@@ -222,35 +237,59 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     });
   }
 
-  async customerGetOrder(
-    username: string,
+  async getOwnOrders(
     page: number,
-  ): Promise<IPaginate<Order>> {
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Page number is not valid',
-      );
-    }
-    const existCustomer = await this.customerService.getCustomerByUsername(
+    pLimit: string,
+    search: string,
+    sort: string,
+    filter: string,
+    range: string,
+    username: string,
+  ): Promise<IPagination<Order>> {
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    const join: getAllJoinOptions = {
+      rootName: 'order',
+      joinColumns: [
+        {
+          column: 'order.products',
+          optional: 'product',
+        },
+      ],
+    };
+    const existAccount = await this.accountService.getActiveAccountName(
       username,
     );
-    const allOrders = await this.findAllByCondition({
-      fkCustomer: { pkCustomer: existCustomer.pkCustomer },
-    });
-    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= allOrders.length) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
-    }
-    const elements = allOrders.slice(
-      (page - 1) * MAX_ELEMENTS_OF_PAGE,
-      page * MAX_ELEMENTS_OF_PAGE,
+    const existCustomer = await this.customerService.getCustomerByAccount(
+      existAccount.pkAccount,
     );
-    return {
-      page,
-      totalPages: getTotalPages(allOrders.length),
-      totalElements: allOrders.length,
-      elements,
+    const force: getAllForceOptions = {
+      forces: [
+        {
+          column: 'fkCustomer',
+          condition: existCustomer.pkCustomer,
+        },
+      ],
     };
+    let totals = [];
+    try {
+      totals = await this.getAlls(search, sort, filter, force, join, range);
+    } catch (error) {
+      console.log(error);
+    }
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('orders/own');
+    return this.paginationService.getResponseObject(
+      elements,
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 
   async customerGetDetails(username: string, id: string): Promise<Order> {
@@ -284,27 +323,45 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     return order;
   }
 
-  async getOrders(page: number): Promise<IPaginate<Order>> {
-    if (page <= 0) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        'Page number is not valid',
-      );
-    }
-    const allOrders = await this.findAllByCondition({});
-    if ((page - 1) * MAX_ELEMENTS_OF_PAGE >= allOrders.length) {
-      throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Out of range');
-    }
-    const elements = allOrders.slice(
-      (page - 1) * MAX_ELEMENTS_OF_PAGE,
-      page * MAX_ELEMENTS_OF_PAGE,
-    );
-    return {
-      page,
-      totalPages: getTotalPages(allOrders.length),
-      totalElements: allOrders.length,
-      elements,
+  async getAllOrders(
+    page: number,
+    pLimit: string,
+    search: string,
+    sort: string,
+    filter: string,
+    range: string,
+    username: string,
+  ): Promise<IPagination<Order>> {
+    if (page <= 0) page = 1;
+    let limit = 25;
+    if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
+    const join: getAllJoinOptions = {
+      rootName: 'order',
+      joinColumns: [
+        {
+          column: 'order.products',
+          optional: 'product',
+        },
+      ],
     };
+    let totals = [];
+    try {
+      totals = await this.getAlls(search, sort, filter, null, join, range);
+    } catch (error) {
+      console.log(error);
+    }
+    const total = totals.length;
+    const elements = totals.splice((page - 1) * limit, page * limit);
+    this.paginationService.setPrefix('orders/all');
+    return this.paginationService.getResponseObject(
+      elements,
+      total,
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+    );
   }
 
   async changeStatus(status: ShipmentStatus, id: string): Promise<void> {
@@ -375,6 +432,18 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     existOrder.paymentStatus = PaymentStatus.REFUND;
     existOrder.shipmentStatus = ShipmentStatus.FAILURE;
     existOrder.status = OrderStatus.CANCEL;
-    await this.saveOrder(existOrder);
+    await this.dataSource.transaction(async (entityManager) => {
+      const products = await this.orderProductService.getOrderProductByOrder(
+        existOrder.pkOrder,
+      );
+      const returnQuantityPromise = products.map((item) => {
+        return this.productModelService.returnQuantity(
+          item.fkProductModel.pkProductModel,
+          item.quantity,
+        );
+      });
+      await Promise.all(returnQuantityPromise);
+      await entityManager.save(existOrder);
+    });
   }
 }

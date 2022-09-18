@@ -11,6 +11,7 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConsumes,
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiParam,
@@ -39,6 +40,7 @@ export class DeliveryController {
   @ApiBearerAuth()
   @Post()
   @UseGuards(AuthGuard, RoleGuard)
+  @ApiConsumes('application/x-www-form-urlencoded')
   @RequireRoles(Role.CUSTOMER)
   async addDelivery(
     @Body() body: AddDeliveryDto,
@@ -51,6 +53,7 @@ export class DeliveryController {
   @Patch()
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.CUSTOMER)
+  @ApiConsumes('application/x-www-form-urlencoded')
   async updateDelivery(
     @Body() body: UpdateDeliveryDto,
     @UserBound() username: string,
@@ -62,7 +65,7 @@ export class DeliveryController {
   @ApiParam({
     name: 'id',
   })
-  @Delete(':id')
+  @Patch(':id')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.CUSTOMER)
   async softDeleteDelivery(

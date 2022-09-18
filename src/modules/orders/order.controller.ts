@@ -7,15 +7,18 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiExtraModels,
   ApiForbiddenResponse,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -25,9 +28,9 @@ import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
 import { RoleGuard } from '../../guards/role.guard';
 import { OrderService } from './order.service';
-import { IPaginate } from 'src/utils/interface.util';
+import { IPaginate, IPagination } from '../../utils/interface.util';
 import { Order } from './order.entity';
-import { ChangeStatusDto } from './order.dto';
+import { ChangeOrderStatusDto, OrderDto } from './order.dto';
 
 @Controller('orders')
 @ApiTags('Orders')
@@ -35,30 +38,7 @@ import { ChangeStatusDto } from './order.dto';
 @ApiBadRequestResponse()
 export class OrderController {
   constructor(private orderService: OrderService) {}
-  @ApiBody({
-    schema: {
-      required: ['products'],
-      properties: {
-        coupon: {
-          type: 'string',
-        },
-        delivery: {
-          type: 'string',
-        },
-        products: {
-          type: 'array',
-          items: {
-            type: 'object',
-            required: ['id', 'quantity'],
-            properties: {
-              modelId: { type: 'string' },
-              quantity: { type: 'number' },
-            },
-          },
-        },
-      },
-    },
-  })
+
   @ApiForbiddenResponse()
   @ApiUnauthorizedResponse()
   @ApiBearerAuth()
@@ -67,44 +47,109 @@ export class OrderController {
   @RequireRoles(Role.CUSTOMER)
   async customerOrder(
     @Body()
-    body: {
-      delivery: string;
-      coupon: string;
-      products: { modelId: string; quantity: number }[];
-    },
+    body: OrderDto,
     @UserBound() username: string,
   ): Promise<void> {
     return this.orderService.customerOrder(
-      body.coupon,
-      body.delivery,
-      body.products,
+      body.couponId,
+      body.deliveryId,
+      body.carts,
       username,
     );
   }
 
-  @ApiForbiddenResponse()
-  @ApiUnauthorizedResponse()
+  @Get('own')
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.CUSTOMER)
-  @Get(':page')
-  async customerGetOrder(
-    @Param('page', new ParseIntPipe()) page: number,
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'page',
+  })
+  @ApiQuery({
+    required: false,
+    name: 'limit',
+  })
+  @ApiQuery({
+    name: 'range',
+    required: false,
+  })
+  async getOwnOrders(
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('sort') sort: string,
+    @Query('filter') filter: string,
+    @Query('range') range: string,
     @UserBound() username: string,
-  ): Promise<IPaginate<Order>> {
-    return this.orderService.customerGetOrder(username, page);
+  ): Promise<IPagination<Order>> {
+    return this.orderService.getOwnOrders(
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+      range,
+      username,
+    );
   }
 
-  @ApiForbiddenResponse()
-  @ApiUnauthorizedResponse()
+  @Get('all')
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RoleGuard)
-  @RequireRoles(Role.SUPERUSER, Role.STAFF)
-  @Get('alls/:page')
-  async getOrders(
-    @Param('page', new ParseIntPipe()) page: number,
-  ): Promise<IPaginate<Order>> {
-    return this.orderService.getOrders(page);
+  @RequireRoles(Role.STAFF, Role.SUPERUSER)
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+  })
+  @ApiQuery({
+    name: 'page',
+  })
+  @ApiQuery({
+    required: false,
+    name: 'limit',
+  })
+  @ApiQuery({
+    name: 'range',
+    required: false,
+  })
+  async getAllOrders(
+    @Query('page', new ParseIntPipe()) page: number,
+    @Query('limit') limit: string,
+    @Query('search') search: string,
+    @Query('sort') sort: string,
+    @Query('filter') filter: string,
+    @Query('range') range: string,
+    @UserBound() username: string,
+  ): Promise<IPagination<Order>> {
+    return this.orderService.getAllOrders(
+      page,
+      limit,
+      search,
+      sort,
+      filter,
+      range,
+      username,
+    );
   }
 
   @ApiForbiddenResponse()
@@ -136,13 +181,12 @@ export class OrderController {
   @ApiForbiddenResponse()
   @ApiUnauthorizedResponse()
   @ApiBearerAuth()
-  @ApiExtraModels(ChangeStatusDto)
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
   @Put('status/:id')
   async changeStatus(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() body: ChangeStatusDto,
+    @Body() body: ChangeOrderStatusDto,
   ): Promise<void> {
     return this.orderService.changeStatus(body.status, id);
   }
