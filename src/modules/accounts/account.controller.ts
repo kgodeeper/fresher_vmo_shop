@@ -1,8 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -19,6 +22,7 @@ import {
   ApiExtraModels,
   ApiForbiddenResponse,
   ApiOkResponse,
+  ApiParam,
   ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -253,5 +257,15 @@ export class AccountController {
   @UseGuards(AuthGuard)
   async getAccountInformation(@UserBound() username: string): Promise<Account> {
     return this.accountService.getAccountInformation(username);
+  }
+
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse()
+  @ApiForbiddenResponse()
+  @Delete(':id')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.SUPERUSER)
+  async deleteAccount(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.accountService.deleteAccount(id);
   }
 }

@@ -3,6 +3,7 @@ import {
   BaseEntity,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -52,4 +53,7 @@ export class Category extends BaseEntity {
     nullable: true,
   })
   updateAt: string;
+
+  @DeleteDateColumn()
+  deleteAt: string;
 }

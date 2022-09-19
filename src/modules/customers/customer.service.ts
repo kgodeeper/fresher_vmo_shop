@@ -1,5 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { AccountStatus } from '../../commons/enum.common';
+import { AccountStatus, OrderStatus } from '../../commons/enum.common';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { ServiceUtil } from '../../utils/service.utils';
 import { DataSource, Repository } from 'typeorm';
@@ -7,6 +7,9 @@ import { formatName } from '../../utils/string.util';
 import { AccountService } from '../accounts/account.service';
 import { UpdateCustomerInformationDto } from './customer.dto';
 import { Customer } from './customer.entity';
+import { timeStamp } from 'console';
+import { filter } from 'rxjs';
+import { Order } from '../orders/order.entity';
 
 @Injectable()
 export class CustomerService extends ServiceUtil<
@@ -129,5 +132,18 @@ export class CustomerService extends ServiceUtil<
 
   async saveCustomer(customer: Customer): Promise<void> {
     this.repository.save(customer);
+  }
+
+  async checkInOrder(accountId: string): Promise<boolean> {
+    const existCustomer = await this.getCustomerByAccount(accountId);
+    if (!existCustomer) {
+      return false;
+    }
+    let inOrders: Order[] = [];
+    inOrders = existCustomer.orders?.filter((item) => {
+      return item.status === OrderStatus.PROCESSING;
+    });
+    if (!inOrders?.length) return false;
+    return true;
   }
 }

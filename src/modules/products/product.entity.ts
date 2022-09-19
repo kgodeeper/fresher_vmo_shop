@@ -3,6 +3,7 @@ import {
   BaseEntity,
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -105,6 +106,9 @@ export class Product extends BaseEntity {
     default: `now()`,
   })
   updateAt: string;
+
+  @DeleteDateColumn()
+  deleteAt: Date;
 
   @ManyToOne(() => Category)
   @JoinColumn({

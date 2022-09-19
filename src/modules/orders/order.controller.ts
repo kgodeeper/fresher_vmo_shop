@@ -139,7 +139,6 @@ export class OrderController {
     @Query('sort') sort: string,
     @Query('filter') filter: string,
     @Query('range') range: string,
-    @UserBound() username: string,
   ): Promise<IPagination<Order>> {
     return this.orderService.getAllOrders(
       page,
@@ -148,7 +147,6 @@ export class OrderController {
       sort,
       filter,
       range,
-      username,
     );
   }
 

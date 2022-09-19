@@ -1,6 +1,8 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { RedisCacheModule } from '../caches/cache.module';
 import { CategoryModule } from '../categories/category.module';
+import { Order } from '../orders/order.entity';
+import { OrderModule } from '../orders/order.module';
 import { PaginationModule } from '../paginations/pagination.module';
 import { PhotoModule } from '../photos/photo.module';
 import { SuplierModule } from '../supliers/suplier.module';
@@ -12,6 +14,7 @@ import { ProductService } from './product.service';
   imports: [
     SuplierModule,
     forwardRef(() => CategoryModule),
+    forwardRef(() => OrderModule),
     UploadModule,
     RedisCacheModule,
     PhotoModule,

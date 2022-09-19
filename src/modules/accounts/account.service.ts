@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { RedisCacheService } from '../caches/cache.service';
 import { ServiceUtil } from '../../utils/service.utils';
@@ -7,10 +7,6 @@ import { AccountStatus, LoginMethod, Role } from '../../commons/enum.common';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { MailService } from '../mailer/mail.service';
 import {
-  combineFilter,
-  combineRange,
-  combineSearch,
-  combineSort,
   encrypt,
   generateCode,
   getPublicId,
@@ -26,8 +22,8 @@ import {
 } from './account.dto';
 import { UploadService } from '../uploads/upload.service';
 import { IPagination } from '../../utils/interface.util';
-import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
 import { PaginationService } from '../paginations/pagination.service';
+import { CustomerService } from '../customers/customer.service';
 
 @Injectable()
 export class AccountService extends ServiceUtil<Account, Repository<Account>> {
@@ -36,6 +32,8 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     private dataSource: DataSource,
     private mailService: MailService,
     private paginationService: PaginationService<Account>,
+    @Inject(forwardRef(() => CustomerService))
+    private customerService: CustomerService,
     private configService: ConfigService,
     private cacheService: RedisCacheService,
     private uploadService: UploadService,
@@ -373,20 +371,42 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     status: AccountStatus,
   ): Promise<void> {
     const existAccount = await this.getAccountById(accountID);
-    if (status === existAccount.status) {
-      throw new AppHttpException(
-        HttpStatus.BAD_REQUEST,
-        `Account status is already ${status}`,
-      );
-    }
-
     if (existAccount.username === superuser) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
         `Can not change status of your self`,
       );
     }
-
+    switch (status) {
+      case existAccount.status: {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          `Account status is already ${status}`,
+        );
+      }
+      case AccountStatus.INACTIVE: {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          `Can not change account status to no verify`,
+        );
+      }
+      case AccountStatus.BLOCKED: {
+        if (existAccount.role === Role.CUSTOMER) {
+          const canChange = !(await this.customerService.checkInOrder(
+            existAccount.pkAccount,
+          ));
+          if (!canChange) {
+            throw new AppHttpException(
+              HttpStatus.BAD_REQUEST,
+              'Can not block account when it have processing order',
+            );
+          }
+          break;
+        }
+      }
+      default:
+        break;
+    }
     existAccount.status = status;
     await existAccount.save();
     /**
@@ -401,6 +421,12 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     role: Role,
   ): Promise<void> {
     const existAccount = await this.getAccountById(accountID);
+    if (existAccount.username === superuser) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        `Can not change role of your self`,
+      );
+    }
 
     if (role === existAccount.role) {
       throw new AppHttpException(
@@ -409,10 +435,10 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
       );
     }
 
-    if (existAccount.username === superuser) {
+    if (existAccount.role === Role.CUSTOMER) {
       throw new AppHttpException(
         HttpStatus.BAD_REQUEST,
-        `Can not change role of your self`,
+        'Can not change role of customer',
       );
     }
 
@@ -593,5 +619,27 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
      * remove all cached
      */
     await this.cacheService.destroyAllKeys(`user:${oldName}:*`);
+  }
+
+  async deleteAccount(accountId: string): Promise<void> {
+    const existAccount = await this.getAccountById(accountId);
+    if (!existAccount) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Account is not exist',
+      );
+    }
+    if (existAccount.role === Role.CUSTOMER) {
+      const canChange = !(await this.customerService.checkInOrder(
+        existAccount.pkAccount,
+      ));
+      if (!canChange) {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          'Can not block account when it have processing order',
+        );
+      }
+    }
+    await this.repository.softDelete(existAccount.pkAccount);
   }
 }

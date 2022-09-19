@@ -132,10 +132,8 @@ export class DeliveryService extends ServiceUtil<
     await existDelivery.save();
   }
 
-  async softDeleteDelivery(id: string, username: string): Promise<void> {
-    const existAccount = await this.accountService.checkAccountByUsername(
-      true,
-      true,
+  async deleteDelivery(id: string, username: string): Promise<void> {
+    const existAccount = await this.accountService.getActiveAccountName(
       username,
     );
     const existCustomer = await this.customerService.findOneAndJoin(
@@ -158,8 +156,7 @@ export class DeliveryService extends ServiceUtil<
         `You are not own this delivery address`,
       );
     }
-    existDelivery.status = Status.INACTIVE;
-    await existDelivery.save();
+    await this.repository.softDelete(existDelivery.pkAddress);
   }
 
   async getOwnDelivery(username: string): Promise<Delivery[]> {

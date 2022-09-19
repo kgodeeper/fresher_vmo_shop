@@ -6,7 +6,6 @@ import { SuplierService } from '../supliers/suplier.service';
 import { AddProductDto, UpdateProductDto } from './product.dto';
 import { Product } from './product.entity';
 import { CategoryService } from '../categories/category.service';
-import { RedisCacheService } from '../caches/cache.service';
 import { UploadService } from '../uploads/upload.service';
 import { getPublicId } from '../../utils/string.util';
 import { Status } from '../../commons/enum.common';
@@ -14,13 +13,11 @@ import { PhotoService } from '../photos/photo.service';
 import {
   getAllForceOptions,
   getAllJoinOptions,
-  IPaginate,
   IPagination,
 } from '../../utils/interface.util';
-import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
-import { getTotalPages } from '../../utils/number.util';
 import { SaleProduct } from '../sale-products/sale-product.entity';
 import { PaginationService } from '../paginations/pagination.service';
+import { OrderService } from '../orders/order.service';
 
 @Injectable()
 export class ProductService extends ServiceUtil<Product, Repository<Product>> {
@@ -31,6 +28,8 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     private uploadService: UploadService,
     private suplierService: SuplierService,
     private paginationService: PaginationService<Product>,
+    @Inject(forwardRef(() => OrderService))
+    private orderService: OrderService,
   ) {
     super(dataSource.getRepository(Product));
   }
@@ -269,7 +268,6 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       item.sales = item.sales.filter((elm) => {
         return new Date(elm.fkSale.end) > new Date();
       });
-      delete item.importPrice;
       return item;
     });
     const total = totals.length;
@@ -343,6 +341,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
       item.sales = item.sales.filter((elm) => {
         return new Date(elm.fkSale.end) > new Date();
       });
+      delete item.importPrice;
       return item;
     });
     const total = totals.length;
@@ -363,6 +362,18 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
   async changeProductStatus(id: string): Promise<void> {
     const existProduct = await this.getExistProduct(id);
     if (existProduct.status === Status.ACTIVE) {
+      /**
+       * check product exist on order ?
+       */
+      const canChange: boolean = await this.orderService.checkOnOrder(
+        existProduct.pkProduct,
+      );
+      if (canChange) {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          'Can not remove product when exist on processing order',
+        );
+      }
       existProduct.status = Status.INACTIVE;
     } else {
       existProduct.status = Status.ACTIVE;
@@ -450,10 +461,27 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
   }
 
   async checkProductInCategory(categoryId: string): Promise<boolean> {
-    const existProduct = await this.findOneByCondition({
-      fkCategory: { pkCategory: categoryId },
-      status: Status.ACTIVE,
-    });
-    return !!existProduct;
+    const existProduct = await this.findAllWithJoin(
+      { fkCategory: true },
+      {
+        fkCategory: { pkCategory: categoryId },
+        status: Status.ACTIVE,
+      },
+    );
+    return !!existProduct.length;
+  }
+
+  async deleteProduct(id: string): Promise<void> {
+    const existProduct = await this.getExistProduct(id);
+    const canChange = !(await this.orderService.checkOnOrder(
+      existProduct.pkProduct,
+    ));
+    if (!canChange) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Can not remove product when exist on processing order',
+      );
+    }
+    await this.repository.softDelete(existProduct.pkProduct);
   }
 }

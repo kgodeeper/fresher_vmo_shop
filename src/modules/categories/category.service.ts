@@ -278,4 +278,16 @@ export class CategoryService extends ServiceUtil<
     }
     return existCategory;
   }
+
+  async deleteCategory(id: string): Promise<void> {
+    const existCategory = await this.getCategory(id);
+    const canChange = !(await this.productService.checkProductInCategory(id));
+    if (!canChange) {
+      throw new AppHttpException(
+        HttpStatus.BAD_REQUEST,
+        'Cant remove when category have active products',
+      );
+    }
+    await this.repository.softDelete(existCategory.pkCategory);
+  }
 }

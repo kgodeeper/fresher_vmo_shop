@@ -26,11 +26,8 @@ import {
 import {
   getAllForceOptions,
   getAllJoinOptions,
-  IPaginate,
   IPagination,
 } from '../../utils/interface.util';
-import { MAX_ELEMENTS_OF_PAGE } from '../../commons/const.common';
-import { getTotalPages } from '../../utils/number.util';
 import { PaymentService } from '../payments/payment.service';
 import { CustomerCoupon } from '../customer-coupons/customer-coupon.entity';
 import { OrderProductService } from '../order-products/order-product.service';
@@ -41,6 +38,7 @@ import { PaginationService } from '../paginations/pagination.service';
 export class OrderService extends ServiceUtil<Order, Repository<Order>> {
   constructor(
     private dataSource: DataSource,
+    @Inject(forwardRef(() => ProductService))
     private productService: ProductService,
     private customerCouponService: CustomerCouponService,
     private customerService: CustomerService,
@@ -48,6 +46,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     private accountService: AccountService,
     private paginationService: PaginationService<Order>,
     private orderProductService: OrderProductService,
+    @Inject(forwardRef(() => ProductModelService))
     private productModelService: ProductModelService,
     @Inject(forwardRef(() => PaymentService))
     private paymentService: PaymentService,
@@ -330,7 +329,6 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     sort: string,
     filter: string,
     range: string,
-    username: string,
   ): Promise<IPagination<Order>> {
     if (page <= 0) page = 1;
     let limit = 25;
@@ -341,6 +339,14 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
         {
           column: 'order.products',
           optional: 'product',
+        },
+        {
+          column: 'order.fkCustomer',
+          optional: 'customer',
+        },
+        {
+          column: 'order.fkPayment',
+          optional: 'payment',
         },
       ],
     };
@@ -445,5 +451,27 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
       await Promise.all(returnQuantityPromise);
       await entityManager.save(existOrder);
     });
+  }
+
+  async checkOnOrder(productId: string): Promise<boolean> {
+    const existOrder = await this.orderProductService.findOneByCondition({
+      fkProductModel: { fkProduct: { pkProduct: productId } },
+      fkOrder: { status: OrderStatus.PROCESSING },
+    });
+    const quantityInStock =
+      await this.productModelService.getAllQuantityInStock(productId);
+    if (quantityInStock === 0 && !existOrder) return false;
+    return true;
+  }
+
+  async checkModelOnOrder(modelId: string): Promise<boolean> {
+    const existOrder = await this.orderProductService.findOneByCondition({
+      fkProductMode: { pkProductModel: modelId },
+      fkOrder: { status: OrderStatus.PROCESSING },
+    });
+    if (existOrder.fkProductModel.quantityInStock === 0 && !existOrder) {
+      return false;
+    }
+    return true;
   }
 }

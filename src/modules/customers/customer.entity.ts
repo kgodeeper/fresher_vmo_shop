@@ -2,13 +2,17 @@ import { Gender } from '../../commons/enum.common';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Account } from '../accounts/account.entity';
+import { Order } from '../orders/order.entity';
 
 @Entity()
 export class Customer extends BaseEntity {
@@ -50,11 +54,20 @@ export class Customer extends BaseEntity {
   })
   receiveSale: boolean;
 
+  @OneToMany(() => Order, (order) => order.fkCustomer)
+  orders: Order[];
+
   @UpdateDateColumn({
     default: `now()`,
     nullable: true,
   })
-  updateAt: string;
+  updateAt: Date;
+
+  @CreateDateColumn()
+  createAt: Date;
+
+  @DeleteDateColumn()
+  deleteAt: Date;
 
   @OneToOne(() => Account, (Account) => Account.pkAccount, {
     cascade: ['remove'],

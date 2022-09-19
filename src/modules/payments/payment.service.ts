@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PaymentStatus, ShipmentStatus } from '../../commons/enum.common';
 import { DataSource, Repository } from 'typeorm';
 import { ServiceUtil } from '../../utils/service.utils';
@@ -12,6 +12,7 @@ import { Order } from '../orders/order.entity';
 export class PaymentService extends ServiceUtil<Payment, Repository<Payment>> {
   constructor(
     private paypalService: PaypalService,
+    @Inject(forwardRef(() => OrderService))
     private orderService: OrderService,
     private dataSource: DataSource,
   ) {

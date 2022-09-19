@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
   BaseEntity,
   BeforeInsert,
+  OneToMany,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Role, AccountStatus, LoginMethod } from '../../commons/enum.common';
 import { encrypt } from '../..//utils/string.util';
@@ -79,8 +81,11 @@ export class Account extends BaseEntity {
   })
   updateAt: string;
 
+  @DeleteDateColumn()
+  deletedAt: Date;
+
   @BeforeInsert()
-  async encyptPassword() {
+  async encryptPassword() {
     this.password = await encrypt(this.password);
   }
 }

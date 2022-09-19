@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -199,5 +200,15 @@ export class CategoryController {
       sort,
       filter,
     );
+  }
+
+  @ApiBearerAuth()
+  @ApiBadRequestResponse()
+  @ApiForbiddenResponse()
+  @Delete(':id')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.SUPERUSER, Role.STAFF)
+  async deleteCategory(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.categoryService.deleteCategory(id);
   }
 }

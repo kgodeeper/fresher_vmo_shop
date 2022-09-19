@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -26,6 +27,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { ideahub } from 'googleapis/build/src/apis/ideahub';
 import { IPaginate, IPagination } from 'src/utils/interface.util';
 import { UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
@@ -176,5 +178,15 @@ export class ProductController {
   @Get('detail/:id')
   async getDetailProduct(@Param() params: UuidDto): Promise<Product> {
     return this.productService.getDetailProduct(params.id);
+  }
+
+  @ApiBearerAuth()
+  @ApiBadRequestResponse()
+  @ApiUnauthorizedResponse()
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.CUSTOMER, Role.SUPERUSER)
+  @Delete(':id')
+  async deleteProduct(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.productService.deleteProduct(id);
   }
 }

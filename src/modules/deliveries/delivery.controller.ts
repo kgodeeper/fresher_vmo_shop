@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -62,20 +63,6 @@ export class DeliveryController {
   }
 
   @ApiBearerAuth()
-  @ApiParam({
-    name: 'id',
-  })
-  @Patch(':id')
-  @UseGuards(AuthGuard, RoleGuard)
-  @RequireRoles(Role.CUSTOMER)
-  async softDeleteDelivery(
-    @Param() params: UuidDto,
-    @UserBound() username: string,
-  ): Promise<void> {
-    return this.deliveryService.softDeleteDelivery(params.id, username);
-  }
-
-  @ApiBearerAuth()
   @Get('own')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.CUSTOMER)
@@ -92,5 +79,16 @@ export class DeliveryController {
   @RequireRoles(Role.SUPERUSER, Role.STAFF)
   async getDelivery(@Param() params: UuidDto): Promise<Delivery> {
     return this.deliveryService.getDelivery(params.id);
+  }
+
+  @ApiBearerAuth()
+  @Delete(':id')
+  @UseGuards(AuthGuard, RoleGuard)
+  @RequireRoles(Role.CUSTOMER)
+  async deleteDelivery(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UserBound() username: string,
+  ): Promise<void> {
+    return this.deliveryService.deleteDelivery(id, username);
   }
 }

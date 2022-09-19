@@ -1,4 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ServiceUtil } from '../../utils/service.utils';
 import { DataSource, Repository } from 'typeorm';
 import { AddProductModelDto, UpdateProductModelDto } from './model.dto';
@@ -6,6 +6,7 @@ import { ProductModel } from './model.entity';
 import { ProductService } from '../products/product.service';
 import { AppHttpException } from '../../exceptions/http.exception';
 import { Status } from '../../commons/enum.common';
+import { OrderService } from '../orders/order.service';
 
 @Injectable()
 export class ProductModelService extends ServiceUtil<
@@ -14,7 +15,10 @@ export class ProductModelService extends ServiceUtil<
 > {
   constructor(
     private dataSource: DataSource,
+    @Inject(forwardRef(() => ProductService))
     private productService: ProductService,
+    @Inject(forwardRef(() => OrderService))
+    private orderService: OrderService,
   ) {
     super(dataSource.getRepository(ProductModel));
   }
@@ -138,6 +142,15 @@ export class ProductModelService extends ServiceUtil<
       throw new AppHttpException(HttpStatus.BAD_REQUEST, 'Model is not exist');
     }
     if (existModel.status === Status.ACTIVE) {
+      const canChange = await this.orderService.checkModelOnOrder(
+        existModel.pkProductModel,
+      );
+      if (!canChange) {
+        throw new AppHttpException(
+          HttpStatus.BAD_REQUEST,
+          'Can not change model status when model exist in proccessing order',
+        );
+      }
       existModel.status = Status.INACTIVE;
     } else {
       existModel.status = Status.ACTIVE;

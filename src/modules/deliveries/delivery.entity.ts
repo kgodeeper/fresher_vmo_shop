@@ -2,11 +2,14 @@ import { Status } from '../../commons/enum.common';
 import {
   BaseEntity,
   Column,
+  CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Customer } from '../customers/customer.entity';
 
@@ -56,6 +59,15 @@ export class Delivery extends BaseEntity {
   @ManyToOne(() => Customer)
   @JoinColumn({ name: 'fkCustomer' })
   fkCustomer: Customer;
+
+  @CreateDateColumn()
+  createAt: Date;
+
+  @UpdateDateColumn()
+  updateAt: Date;
+
+  @DeleteDateColumn()
+  deleteAt: Date;
 
   updateInformation(
     phone?: string,
