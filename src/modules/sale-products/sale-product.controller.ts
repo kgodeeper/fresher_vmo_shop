@@ -17,7 +17,8 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { IPaginate, IPagination } from 'src/utils/interface.util';
+import { GetResourceDto } from '../../commons/dto.common';
+import { IPagination } from 'src/utils/interface.util';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
@@ -42,39 +43,17 @@ export class SaleProductController {
   }
 
   @Get(':sale')
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'page',
-  })
-  @ApiQuery({
-    name: 'limit',
-  })
   async getCurrentSaleProduct(
     @Param('sale', ParseUUIDPipe) sale: string,
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
   ): Promise<IPagination<SaleProduct>> {
     return this.saleProductService.getCurrentSaleProduct(
       sale,
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
     );
   }
 }

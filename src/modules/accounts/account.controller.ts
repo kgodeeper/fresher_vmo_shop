@@ -29,7 +29,7 @@ import {
 } from '@nestjs/swagger';
 import { UserBound } from '../../decorators/bind-user.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
-import { EmailDto } from '../../commons/dto.common';
+import { EmailDto, GetResourceDto } from '../../commons/dto.common';
 import {
   ActiveAccountDto,
   ChangeEmailDto,
@@ -178,26 +178,22 @@ export class AccountController {
   @ApiUnauthorizedResponse()
   @ApiForbiddenResponse()
   @Get('/all')
-  @ApiQuery({ name: 'page', type: 'number' })
-  @ApiQuery({ name: 'limit', type: 'number', required: false })
-  @ApiQuery({ name: 'search', type: 'string', required: false })
-  @ApiQuery({ name: 'sort', type: 'string', required: false })
-  @ApiQuery({ name: 'filter', type: 'string', required: false })
+  // @ApiQuery({ name: 'page', type: 'number', required: false })
+  // @ApiQuery({ name: 'limit', type: 'number', required: false })
+  // @ApiQuery({ name: 'search', type: 'string', required: false })
+  // @ApiQuery({ name: 'sort', type: 'string', required: false })
+  // @ApiQuery({ name: 'filter', type: 'string', required: false })
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
   @UseGuards(AuthGuard, RoleGuard)
   async getAllAccounts(
-    @Query('page', ParseIntPipe) page: number,
-    @Query('limit') limit: string,
-    @Query('sort') sort: string,
-    @Query('search') search: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
   ): Promise<IPagination<Account>> {
     return this.accountService.getAllAccounts(
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
     );
   }
 

@@ -342,7 +342,7 @@ export class AccountService extends ServiceUtil<Account, Repository<Account>> {
     sort: string,
     filter: string,
   ): Promise<IPagination<Account>> {
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     let totals = [];

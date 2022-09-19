@@ -100,7 +100,7 @@ export class SaleProductService extends ServiceUtil<
     sort: string,
     filter: string,
   ): Promise<IPagination<SaleProduct>> {
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     const force: getAllForceOptions = {

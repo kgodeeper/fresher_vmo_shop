@@ -18,14 +18,15 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { IPaginate, IPagination } from '../../utils/interface.util';
+import { IPagination } from '../../utils/interface.util';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
 import { RoleGuard } from '../../guards/role.guard';
-import { AddSaleDto } from './sale.dto';
+import { AddSaleDto, GetFutureDto } from './sale.dto';
 import { Sale } from './sale.entity';
 import { SaleService } from './sale.service';
+import { GetResourceDto } from '../../commons/dto.common';
 
 @Controller('sales')
 @ApiTags('FlashSales')
@@ -42,54 +43,25 @@ export class SaleController {
     return this.saleService.addSale(body);
   }
 
-  @ApiQuery({
-    name: 'page',
-    required: true,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
   @ApiBearerAuth()
   @Get('all')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.SUPERUSER, Role.STAFF)
-  async getAllSale(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
-  ): Promise<IPagination<Sale>> {
-    return this.saleService.getAllSales(page, limit, search, sort, filter);
+  async getAllSale(@Query() query: GetResourceDto): Promise<IPagination<Sale>> {
+    return this.saleService.getAllSales(
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
+    );
   }
 
-  @ApiQuery({
-    name: 'page',
-    required: true,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-  })
   @Get('future')
   async getFutureSale(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
+    @Query() query: GetFutureDto,
   ): Promise<IPagination<Sale>> {
-    return this.saleService.getFutureSales(page, limit);
+    return this.saleService.getFutureSales(query.page, query.limit);
   }
 
   @Get('details/:id')

@@ -293,7 +293,7 @@ export class ProductService extends ServiceUtil<Product, Repository<Product>> {
     filter: string,
     range: string,
   ): Promise<IPagination<Product>> {
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     const containSecretField = this.checkIncludeSecretField(

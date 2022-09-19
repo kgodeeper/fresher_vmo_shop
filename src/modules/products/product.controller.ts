@@ -27,9 +27,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { ideahub } from 'googleapis/build/src/apis/ideahub';
-import { IPaginate, IPagination } from 'src/utils/interface.util';
-import { UuidDto } from '../../commons/dto.common';
+import { IPagination } from 'src/utils/interface.util';
+import { GetResourceDto, UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
@@ -92,85 +91,33 @@ export class ProductController {
   }
 
   @Get('all')
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'page',
-  })
-  @ApiQuery({
-    required: false,
-    name: 'limit',
-  })
-  @ApiQuery({
-    name: 'range',
-    required: false,
-  })
+  @ApiQuery({ name: 'range', required: false })
   async getAllProducts(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
     @Query('range') range: string,
   ): Promise<IPagination<Product>> {
     return this.productService.getAllProducts(
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
       range,
     );
   }
 
   @Get('')
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'page',
-  })
-  @ApiQuery({
-    required: false,
-    name: 'limit',
-  })
-  @ApiQuery({
-    required: false,
-    name: 'range',
-  })
+  @ApiQuery({ name: 'range', required: false })
   async getAllActiveProducts(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
     @Query('range') range: string,
   ): Promise<IPagination<Product>> {
     return this.productService.getAllActiveProducts(
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
       range,
     );
   }

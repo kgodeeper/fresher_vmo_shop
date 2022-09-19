@@ -245,7 +245,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     range: string,
     username: string,
   ): Promise<IPagination<Order>> {
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     const join: getAllJoinOptions = {
@@ -330,7 +330,7 @@ export class OrderService extends ServiceUtil<Order, Repository<Order>> {
     filter: string,
     range: string,
   ): Promise<IPagination<Order>> {
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     const join: getAllJoinOptions = {

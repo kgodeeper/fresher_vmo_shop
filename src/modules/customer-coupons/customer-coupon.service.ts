@@ -116,7 +116,7 @@ export class CustomerCouponService extends ServiceUtil<
     } else {
       filter = `fkCustomer:${existCustomer.pkCustomer}`;
     }
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     const force: getAllForceOptions = {

@@ -152,7 +152,7 @@ export class CategoryService extends ServiceUtil<
     /**
      * check valid page
      */
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     const forceTargets: getAllForceOptions = {
@@ -192,7 +192,7 @@ export class CategoryService extends ServiceUtil<
     /**
      * check valid page
      */
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     let totals = [];

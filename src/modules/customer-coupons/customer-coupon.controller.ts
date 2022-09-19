@@ -7,8 +7,9 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { IPagination } from 'src/utils/interface.util';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { GetResourceDto } from '../../commons/dto.common';
+import { IPagination } from '../../utils/interface.util';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { UserBound } from '../../decorators/bind-user.decorator';
@@ -35,40 +36,17 @@ export class CustomerCouponController {
 
   @ApiBearerAuth()
   @Get('own')
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'page',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-  })
   @UseGuards(AuthGuard)
   async getCustomerCoupon(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
     @UserBound() username: string,
   ): Promise<IPagination<CustomerCoupon>> {
     return this.customerCouponService.getCoupons(
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
       username,
     );
   }

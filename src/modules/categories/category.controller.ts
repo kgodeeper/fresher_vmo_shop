@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseGuards,
@@ -27,12 +28,12 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { IPaginate, IPagination } from '../../utils/interface.util';
-import { UuidDto } from '../../commons/dto.common';
+import { GetResourceDto, UuidDto } from '../../commons/dto.common';
 import { Role } from '../../commons/enum.common';
 import { RequireRoles } from '../../decorators/bind-role.decorator';
 import { AuthGuard } from '../../guards/auth.guard';
 import { RoleGuard } from '../../guards/role.guard';
-import { AddCategoryDto } from './category.dto';
+import { AddCategoryDto, updateCategoryDto } from './category.dto';
 import { Category } from './category.entity';
 import { CategoryService } from './category.service';
 import { QueryResult } from 'typeorm';
@@ -48,16 +49,6 @@ export class CategoryController {
   @ApiForbiddenResponse()
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['name', 'banner'],
-      properties: {
-        name: { type: 'string' },
-        banner: { type: 'string', format: 'binary' },
-      },
-    },
-  })
   @Post()
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.SUPERUSER, Role.STAFF)
@@ -76,26 +67,12 @@ export class CategoryController {
   @ApiParam({
     name: 'id',
   })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        banner: {
-          type: 'string',
-          format: 'binary',
-        },
-        name: {
-          type: 'string',
-        },
-      },
-    },
-  })
-  @Patch(':id')
+  @Put(':id')
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.SUPERUSER, Role.STAFF)
   @UseInterceptors(FileInterceptor('banner'))
   async updateCategory(
-    @Body() body: { name: string },
+    @Body() body: updateCategoryDto,
     @Param() params: UuidDto,
     @UploadedFile() file: Express.Multer.File,
   ): Promise<void> {
@@ -129,76 +106,28 @@ export class CategoryController {
   }
 
   @Get('')
-  @ApiQuery({
-    name: 'page',
-    required: true,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
   async getActiveCategory(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
   ): Promise<IPagination<Category>> {
     return this.categoryService.getActiveCategory(
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
     );
   }
 
   @Get('/all')
-  @ApiQuery({
-    name: 'page',
-    required: true,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
   async getAllCategories(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
   ): Promise<IPagination<Category>> {
     return this.categoryService.getAllCategories(
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
     );
   }
 

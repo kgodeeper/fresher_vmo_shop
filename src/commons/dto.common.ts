@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  Matches,
+} from 'class-validator';
 import { UUID_REGEX } from '../utils/regex.util';
 
 export class EmailDto {
@@ -15,4 +23,31 @@ export class UuidDto {
   @IsNotEmpty()
   @Matches(UUID_REGEX)
   id: string;
+}
+
+export class GetResourceDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumberString()
+  page: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumberString()
+  limit: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumberString()
+  search: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumberString()
+  sort: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumberString()
+  filter: string;
 }

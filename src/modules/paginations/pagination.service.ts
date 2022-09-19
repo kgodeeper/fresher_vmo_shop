@@ -53,7 +53,7 @@ export class PaginationService<T> {
         itemCount: items.length,
         itemPerPage: limit,
         totalPages: getTotalPages(totalItems, limit),
-        currentPage: page,
+        currentPage: Number(page),
       },
       links: {
         firstPage,

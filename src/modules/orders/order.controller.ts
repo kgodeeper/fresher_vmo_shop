@@ -31,6 +31,8 @@ import { OrderService } from './order.service';
 import { IPaginate, IPagination } from '../../utils/interface.util';
 import { Order } from './order.entity';
 import { ChangeOrderStatusDto, OrderDto } from './order.dto';
+import { GetResourceDto } from '../../commons/dto.common';
+import { QueryResult } from 'typeorm';
 
 @Controller('orders')
 @ApiTags('Orders')
@@ -62,44 +64,18 @@ export class OrderController {
   @ApiBearerAuth()
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.CUSTOMER)
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'page',
-  })
-  @ApiQuery({
-    required: false,
-    name: 'limit',
-  })
-  @ApiQuery({
-    name: 'range',
-    required: false,
-  })
+  @ApiQuery({ name: 'range', required: false })
   async getOwnOrders(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
     @Query('range') range: string,
     @UserBound() username: string,
   ): Promise<IPagination<Order>> {
     return this.orderService.getOwnOrders(
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
       range,
       username,
     );
@@ -107,45 +83,19 @@ export class OrderController {
 
   @Get('all')
   @ApiBearerAuth()
+  @ApiQuery({ name: 'range', required: false })
   @UseGuards(AuthGuard, RoleGuard)
   @RequireRoles(Role.STAFF, Role.SUPERUSER)
-  @ApiQuery({
-    name: 'sort',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'filter',
-    required: false,
-  })
-  @ApiQuery({
-    name: 'page',
-  })
-  @ApiQuery({
-    required: false,
-    name: 'limit',
-  })
-  @ApiQuery({
-    name: 'range',
-    required: false,
-  })
   async getAllOrders(
-    @Query('page', new ParseIntPipe()) page: number,
-    @Query('limit') limit: string,
-    @Query('search') search: string,
-    @Query('sort') sort: string,
-    @Query('filter') filter: string,
+    @Query() query: GetResourceDto,
     @Query('range') range: string,
   ): Promise<IPagination<Order>> {
     return this.orderService.getAllOrders(
-      page,
-      limit,
-      search,
-      sort,
-      filter,
+      query.page,
+      query.limit,
+      query.search,
+      query.sort,
+      query.filter,
       range,
     );
   }

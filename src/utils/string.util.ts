@@ -159,7 +159,7 @@ export function bindSearchQuery(query: string): string {
   if (!query) return '';
   const searches = query.split(';')[0]?.split(':');
   if (!searches || !searches?.[1]?.trim()) return '';
-  return `"${searches[0]}" LIKE '%${searches[1]}%'`;
+  return `LOWER("${searches[0]}") LIKE LOWER('%${searches[1]}%')`;
 }
 
 export function bindRangeQuery(query: string): string {
