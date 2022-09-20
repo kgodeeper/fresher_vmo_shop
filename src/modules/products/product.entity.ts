@@ -122,10 +122,12 @@ export class Product extends BaseEntity {
   })
   fkSuplier: Suplier;
 
-  @OneToMany(() => Photo, (photo) => photo.fkProduct)
+  @OneToMany(() => Photo, (photo) => photo.fkProduct, { onDelete: 'CASCADE' })
   photos: Photo[];
 
-  @OneToMany(() => ProductModel, (model) => model.fkProduct)
+  @OneToMany(() => ProductModel, (model) => model.fkProduct, {
+    onDelete: 'CASCADE',
+  })
   models: ProductModel[];
 
   @OneToMany(() => SaleProduct, (saleProduct) => saleProduct.fkProduct)

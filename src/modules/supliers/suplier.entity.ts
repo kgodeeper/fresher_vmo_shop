@@ -1,5 +1,12 @@
 import { Status } from '../../commons/enum.common';
-import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class Suplier extends BaseEntity {
@@ -14,6 +21,12 @@ export class Suplier extends BaseEntity {
 
   @Column()
   contact: string;
+
+  @CreateDateColumn()
+  createAt: Date;
+
+  @UpdateDateColumn()
+  updateAt: Date;
 
   @Column({
     type: 'enum',

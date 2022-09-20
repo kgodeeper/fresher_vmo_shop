@@ -22,7 +22,6 @@ import { SaleModule } from './modules/sales/sale.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import EmailSchedulingService from './modules/schedules/email-scheduling.service';
 import { MailModule } from './modules/mailer/mail.module';
-import { CacheSchedulingService } from './modules/schedules/cache-scheduling.service';
 import { PaymentModule } from './modules/payments/payment.module';
 import { GoogleAuthModule } from './modules/google-auths/google-auth.module';
 
@@ -60,6 +59,6 @@ import { GoogleAuthModule } from './modules/google-auths/google-auth.module';
     GoogleAuthModule,
   ],
   controllers: [],
-  providers: [EmailSchedulingService, CacheSchedulingService],
+  providers: [EmailSchedulingService],
 })
 export class AppModule {}
