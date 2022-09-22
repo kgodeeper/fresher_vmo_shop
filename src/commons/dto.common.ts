@@ -38,16 +38,16 @@ export class GetResourceDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsNumberString()
+  @IsString()
   search: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsNumberString()
+  @IsString()
   sort: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsNumberString()
+  @IsString()
   filter: string;
 }
