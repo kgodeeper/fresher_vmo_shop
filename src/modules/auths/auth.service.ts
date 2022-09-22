@@ -8,8 +8,6 @@ import { encrypt, randomString, splitString } from '../../utils/string.util';
 import { ConfigService } from '@nestjs/config';
 import { AppJwtService } from '../jwts/jwt.service';
 import { AccountStatus, LoginMethod, Role } from '../../commons/enum.common';
-import { generateKey } from 'crypto';
-import { generateString } from '@nestjs/typeorm';
 
 @Injectable()
 export class AuthService {

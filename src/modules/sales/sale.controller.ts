@@ -74,4 +74,9 @@ export class SaleController {
   ): Promise<Sale> {
     return this.saleService.getSaleDetail(id);
   }
+
+  @Get('current')
+  async getCurrentSale(): Promise<Sale> {
+    return this.saleService.getCurrentSale();
+  }
 }

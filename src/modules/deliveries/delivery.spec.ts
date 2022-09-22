@@ -56,7 +56,7 @@ describe('Delivery integration test', () => {
       jest
         .spyOn(customerService, 'findOneByCondition')
         .mockResolvedValue(
-          new Customer('', '', Gender.FEMALE, null as Account),
+          new Customer('', undefined, Gender.FEMALE, null as Account),
         );
       jest.spyOn(deliveryService, 'countCustomerDelivery').mockResolvedValue(0);
       jest.spyOn(deliveryService, 'saveDelivery').mockResolvedValue();

@@ -33,7 +33,10 @@ describe('auths itegration test', () => {
   beforeAll(async () => {
     testModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue(jest.fn(() => null))
+      .compile();
     accountService = testModule.get<AccountService>(AccountService);
     // mock common service
     jest
@@ -175,16 +178,13 @@ describe('auths itegration test', () => {
   describe('POST /token', () => {
     it('Get access token success', async () => {
       jest
-        .spyOn(testModule.get<AuthGuard>(AuthGuard), 'canActivate')
-        .mockResolvedValue(true);
-      jest
         .spyOn(testModule.get<AppJwtService>(AppJwtService), 'verifyToken')
         .mockResolvedValue({ username: 'testusername' });
       jest
         .spyOn(testModule.get<RedisCacheService>(RedisCacheService), 'get')
         .mockResolvedValue('token');
       const response = await request(app.getHttpServer())
-        .post('/auths/token')
+        .post('/auths/refresh')
         .send({ refreshToken: 'token' });
       expect(response.status).toBe(200);
     });
@@ -194,9 +194,24 @@ describe('auths itegration test', () => {
         .spyOn(testModule.get<AppJwtService>(AppJwtService), 'verifyToken')
         .mockResolvedValue({ username: 'testusername' });
       const response = await request(app.getHttpServer())
-        .post('/auths/token')
+        .post('/auths/refresh')
         .send({ refreshToken: 'refresh' });
       expect(response.status).toBe(400);
+    });
+  });
+
+  describe('POST auths/logout', () => {
+    it('logout success', async () => {
+      jest
+        .spyOn(
+          testModule.get<AccountService>(AccountService),
+          'getActiveAccountName',
+        )
+        .mockResolvedValue(activeAccount);
+      const response = await request(app.getHttpServer())
+        .post('/auths/logout')
+        .send({});
+      expect(response.status).toBe(200);
     });
   });
 });

@@ -90,7 +90,7 @@ export class SaleService extends ServiceUtil<Sale, Repository<Sale>> {
     page: number,
     pLimit: string,
   ): Promise<IPagination<Sale>> {
-    if (page <= 0) page = 1;
+    if (page <= 0 || !page) page = 1;
     let limit = 25;
     if (Number(pLimit) !== NaN && Number(pLimit) >= 0) limit = Number(pLimit);
     const totals = await this.repository

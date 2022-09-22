@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { HttpStatus, INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { HandleResponseInterceptor } from '../../interceptors/handle-response.interceptor';
 import { AppModule } from '../../app.module';
@@ -12,6 +12,7 @@ import * as utils from '../../utils/string.util';
 import { MailService } from '../mailer/mail.service';
 import { UploadService } from '../uploads/upload.service';
 import { RoleGuard } from '../../guards/role.guard';
+import { AppHttpException } from '../../exceptions/http.exception';
 
 let app: INestApplication;
 let test: any;
@@ -90,7 +91,7 @@ describe('Account itegration test', () => {
 
       const response = await test
         .patch('/accounts/active')
-        .send({ email: 'mail@gmail.com', code: '123456' });
+        .send({ account: 'mail@gmail.com', code: '123456' });
       expect(response.status).toBe(200);
     });
 
@@ -107,14 +108,14 @@ describe('Account itegration test', () => {
 
       const response = await test
         .patch('/accounts/active')
-        .send({ email: 'mail@gmail.com', code: '123456' });
+        .send({ account: 'mail@gmail.com', code: '123456' });
       expect(response.status).toBe(400);
     });
 
     it('active account failure, invalid information', async () => {
       const response = await request(app.getHttpServer())
         .patch('/accounts/active')
-        .send({ email: 'mail', code: '123456' });
+        .send({ account: 'mail', code: '123456' });
       expect(response.status).toBe(400);
     });
 
@@ -125,7 +126,7 @@ describe('Account itegration test', () => {
 
       const response = await test
         .patch('/accounts/active')
-        .send({ email: 'mail@gmail.com', code: '123456' });
+        .send({ account: 'mail@gmail.com', code: '123456' });
       expect(response.status).toBe(400);
     });
   });
@@ -139,10 +140,10 @@ describe('Account itegration test', () => {
         );
 
       jest.spyOn(accountService, 'sendVerifyEmail').mockResolvedValue();
-
+      jest.spyOn(accountService, 'checkSpam').mockResolvedValue();
       const response = await test
         .post('/accounts/resend-verify-code')
-        .send({ email: 'vmoder06@gmail.com' });
+        .send({ account: 'vmoder06@gmail.com' });
       expect(response.status).toBe(200);
     });
 
@@ -232,7 +233,7 @@ describe('Account itegration test', () => {
 
       jest.spyOn(accountService, 'countAllByCondition').mockResolvedValue(0);
 
-      jest.spyOn(Account, 'save').mockImplementation(() => null);
+      jest.spyOn(accountService, 'requireBothLogin').mockReturnValue();
 
       jest.spyOn(utils, 'encrypt').mockResolvedValue(activeAccount.password);
 
@@ -309,8 +310,10 @@ describe('Account itegration test', () => {
       jest.spyOn(utils, 'encrypt').mockResolvedValue(activeAccount.password);
 
       jest
-        .spyOn(accountService, 'checkAccountIsExist')
-        .mockResolvedValue(false);
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(activeAccount);
+
+      jest.spyOn(accountService, 'checkEmailIsExist').mockResolvedValue(false);
 
       const response = await test.post('/accounts/change-email-require').send({
         password: activeAccount.password,
@@ -318,6 +321,29 @@ describe('Account itegration test', () => {
       });
 
       expect(response.status).toBe(200);
+    });
+
+    it('Require change email failure, email already exist', async () => {
+      jest
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(activeAccount);
+
+      jest.spyOn(utils, 'encrypt').mockResolvedValue(activeAccount.password);
+
+      jest
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(activeAccount);
+
+      jest
+        .spyOn(accountService, 'checkEmailIsExist')
+        .mockRejectedValue(new AppHttpException(HttpStatus.BAD_REQUEST, ''));
+
+      const response = await test.post('/accounts/change-email-require').send({
+        password: activeAccount.password,
+        newEmail: 'test1@gmail.com',
+      });
+
+      expect(response.status).toBe(400);
     });
 
     it('Require change email failure, password is not correct', async () => {
@@ -436,7 +462,7 @@ describe('Account itegration test', () => {
         .mockResolvedValue(activeAccount);
       const response = await test
         .post('/accounts/forgot-password-require')
-        .send({ email: 'active@gmail.com' });
+        .send({ account: 'active@gmail.com' });
       expect(response.status).toBe(200);
     });
 
@@ -448,7 +474,7 @@ describe('Account itegration test', () => {
         );
       const response = await test
         .post('/accounts/forgot-password-require')
-        .send({ email: 'active@gmail.com' });
+        .send({ account: 'active@gmail.com' });
       expect(response.status).toBe(400);
     });
 
@@ -459,7 +485,7 @@ describe('Account itegration test', () => {
 
       const response = await test
         .post('/accounts/forgot-password-require')
-        .send({ email: 'active@gmail.com' });
+        .send({ account: 'active@gmail.com' });
 
       expect(response.status).toBe(400);
     });
@@ -576,48 +602,39 @@ describe('Account itegration test', () => {
     });
   });
 
-  describe('GET /accounts/all/:page', () => {
+  describe('GET /accounts/all', () => {
     it('get page success', async () => {
-      jest
-        .spyOn(accountService, 'findAllWithLimit')
-        .mockResolvedValue(new Array(20));
+      jest.spyOn(accountService, 'getAlls').mockResolvedValue(new Array(20));
       const response = await test.get('/accounts/all?page=1&limit=1');
       expect(response.status).toBe(200);
     });
 
-    it('get page failure, invalid page', async () => {
-      const response = await test.get('/accounts/all?page=a');
-      expect(response.status).toBe(400);
+    it('get page success, no page', async () => {
+      const response = await test.get('/accounts/all');
+      expect(response.status).toBe(200);
     });
 
-    it('get page success', async () => {
-      jest
-        .spyOn(accountService, 'findAllWithLimit')
-        .mockResolvedValue(new Array(20));
+    it('get page success, no limit', async () => {
       const response = await test.get('/accounts/all?page=1');
       expect(response.status).toBe(200);
-      expect(response.body.metadata.itemPerPage).toBe(20);
-    });
-
-    it('get page failure, out of range', async () => {
-      jest
-        .spyOn(accountService, 'findAllWithLimit')
-        .mockResolvedValue(new Array(0));
-      const response = await test.get('/accounts/all?page=1&limit=1');
-      expect(response.status).toBe(400);
     });
   });
 
   describe('GET /accounts/status', () => {
-    beforeAll(() => {
-      jest.spyOn(Account, 'save').mockImplementation(() => null);
-    });
     it('change status success', async () => {
+      const activeAccount = new Account(
+        '',
+        '',
+        '',
+        Role.CUSTOMER,
+        AccountStatus.ACTIVE,
+      );
+      activeAccount.save = jest.fn(() => null);
       jest
         .spyOn(accountService, 'findOneByCondition')
         .mockResolvedValue(activeAccount);
       const response = await test.patch('/accounts/status').send({
-        newStatus: 'inactive',
+        newStatus: 'blocked',
         accountID: '48a5f4aa-7101-472e-aca3-c9b619fb568b',
       });
       expect(response.status).toBe(200);
@@ -632,7 +649,24 @@ describe('Account itegration test', () => {
       });
       expect(response.status).toBe(400);
     });
+    it('change status failure, can not change to inactive', async () => {
+      jest
+        .spyOn(accountService, 'findOneByCondition')
+        .mockResolvedValue(activeAccount);
+      const response = await test.patch('/accounts/status').send({
+        newStatus: 'inactive',
+        accountID: '48a5f4aa-7101-472e-aca3-c9b619fb568b',
+      });
+      expect(response.status).toBe(400);
+    });
     it('change status failure, account was in status', async () => {
+      const activeAccount = new Account(
+        '',
+        '',
+        '',
+        Role.CUSTOMER,
+        AccountStatus.ACTIVE,
+      );
       jest
         .spyOn(accountService, 'findOneByCondition')
         .mockResolvedValue(
@@ -660,11 +694,18 @@ describe('Account itegration test', () => {
 
   describe('PATCH /accounts/role', () => {
     it('Change role success', async () => {
+      const activeAccount = new Account(
+        '',
+        '',
+        '',
+        Role.STAFF,
+        AccountStatus.ACTIVE,
+      );
       jest
         .spyOn(accountService, 'findOneByCondition')
         .mockResolvedValue(activeAccount);
       const response = await test.patch('/accounts/role').send({
-        newRole: 'staff',
+        newRole: 'superuser',
         accountID: '48a5f4aa-7101-472e-aca3-c9b619fb568b',
       });
       expect(response.status).toBe(200);
@@ -709,17 +750,6 @@ describe('Account itegration test', () => {
   });
 
   describe('POST /accounts/create', () => {
-    it('create account success', async () => {
-      jest.spyOn(accountService, 'findOneByCondition').mockResolvedValue(null);
-      jest.spyOn(accountService, 'insertAccount').mockResolvedValue();
-
-      const response = await test
-        .post('/accounts/create')
-        .send({ email: 'test@gmail.com', role: Role.CUSTOMER });
-
-      expect(response.status).toBe(200);
-    });
-
     it('create account failure, account already exist', async () => {
       jest
         .spyOn(accountService, 'findOneByCondition')
@@ -731,16 +761,6 @@ describe('Account itegration test', () => {
         .send({ email: 'test@gmail.com', role: Role.CUSTOMER });
 
       expect(response.status).toBe(400);
-    });
-  });
-
-  describe('POST /accounts/synch', () => {
-    it('synch success', async () => {
-      jest.spyOn(accountService, 'countAllByCondition').mockResolvedValue(0);
-
-      const response = await test.post('/accounts/synch').send();
-
-      expect(response.status).toBe(200);
     });
   });
 
